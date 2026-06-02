@@ -1,0 +1,16 @@
+{
+  "scanned_at": "2026-06-02T20:00:52.785134Z",
+  "os": "Windows",
+  "cpu": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+  "ram_gb": 15.41,
+  "gpus": [
+    {
+      "name": "NVIDIA GeForce RTX 3060 Laptop GPU",
+      "vram_gb": 6.0,
+      "vendor": "nvidia"
+    }
+  ],
+  "vram_budget_gb": 6.0,
+  "cuda_available": true,
+  "metal_available": false
+}

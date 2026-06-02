@@ -1,0 +1,38 @@
+test_banner_has_three_rows_with_shared_left_column (harness.test_cli_startup.TestCliStartupBanner.test_banner_has_three_rows_with_shared_left_column) ... ok
+test_left_art_uses_claude_code_block_glyphs (harness.test_cli_startup.TestCliStartupBanner.test_left_art_uses_claude_code_block_glyphs) ... FAIL
+test_left_column_matches_claude_reference_glyphs (harness.test_cli_startup.TestCliStartupBanner.test_left_column_matches_claude_reference_glyphs)
+Left-column glyphs are the same as Claude Code's documented startup art. ... FAIL
+test_module_entrypoint_prints_block_art_on_launch (harness.test_cli_startup.TestCliStartupBanner.test_module_entrypoint_prints_block_art_on_launch) ... ok
+
+======================================================================
+FAIL: test_left_art_uses_claude_code_block_glyphs (harness.test_cli_startup.TestCliStartupBanner.test_left_art_uses_claude_code_block_glyphs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\olire\Documents\workspace_cli\Alison\harness\test_cli_startup.py", line 30, in test_left_art_uses_claude_code_block_glyphs
+    self.assertIn("Ôûê", line)
+    ~~~~~~~~~~~~~^^^^^^^^^^^
+AssertionError: 'Ôûê' not found in '  ÔûÿÔûÿ ÔûØÔûØ '
+
+======================================================================
+FAIL: test_left_column_matches_claude_reference_glyphs (harness.test_cli_startup.TestCliStartupBanner.test_left_column_matches_claude_reference_glyphs)
+Left-column glyphs are the same as Claude Code's documented startup art.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\olire\Documents\workspace_cli\Alison\harness\test_cli_startup.py", line 45, in test_left_column_matches_claude_reference_glyphs
+    self.assertEqual(CLAUDE_CODE_LEFT_ART, [line.rstrip() for line in CLAUDE_CODE_LEFT_ART])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [' ÔûÉÔûøÔûêÔûêÔûêÔû£Ôûî', 'ÔûØÔû£ÔûêÔûêÔûêÔûêÔûêÔûøÔûÿ', '  ÔûÿÔûÿ ÔûØÔûØ '] != [' ÔûÉÔûøÔûêÔûêÔûêÔû£Ôûî', 'ÔûØÔû£ÔûêÔûêÔûêÔûêÔûêÔûøÔûÿ', '  ÔûÿÔûÿ ÔûØÔûØ']
+
+First differing element 2:
+'  ÔûÿÔûÿ ÔûØÔûØ '
+'  ÔûÿÔûÿ ÔûØÔûØ'
+
+- [' ÔûÉÔûøÔûêÔûêÔûêÔû£Ôûî', 'ÔûØÔû£ÔûêÔûêÔûêÔûêÔûêÔûøÔûÿ', '  ÔûÿÔûÿ ÔûØÔûØ ']
+?                                   -
+
++ [' ÔûÉÔûøÔûêÔûêÔûêÔû£Ôûî', 'ÔûØÔû£ÔûêÔûêÔûêÔûêÔûêÔûøÔûÿ', '  ÔûÿÔûÿ ÔûØÔûØ']
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.570s
+
+FAILED (failures=2)

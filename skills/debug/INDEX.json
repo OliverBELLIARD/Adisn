@@ -1,0 +1,14 @@
+[
+  {
+    "name": "create-a-debug-skill-for-npm-build-failures",
+    "skill_type": "debug",
+    "description": "create a debug skill for npm build failures",
+    "trigger_keywords": [
+      "debug",
+      "npm",
+      "failures"
+    ],
+    "created_at": "2026-06-02T12:35:45.322308Z",
+    "path": "skills\\debug\\create-a-debug-skill-for-npm-build-failures.md"
+  }
+]

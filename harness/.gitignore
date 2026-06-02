@@ -1,0 +1,58 @@
+# Byte-compiled / pickle files
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Build
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Harness-specific
+__pycache__/
+*.pyc
+.env
+.env.local
+.local/*.pyc
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Coverage
+htmlcov/
+.tox/
+.nox/
+
+# Package manager
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local

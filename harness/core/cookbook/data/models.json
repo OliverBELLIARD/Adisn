@@ -1,0 +1,16 @@
+[
+  {"name": "llama3.2:3b", "parameter_count": "3B", "parameters_b": 3.0, "use_case": "chat", "quality_score": 72, "ollama": true, "backends": ["ollama"]},
+  {"name": "llama3.1:8b", "parameter_count": "8B", "parameters_b": 8.0, "use_case": "chat", "quality_score": 78, "ollama": true, "backends": ["ollama"]},
+  {"name": "qwen2.5:3b", "parameter_count": "3B", "parameters_b": 3.0, "use_case": "chat", "quality_score": 74, "ollama": true, "backends": ["ollama"]},
+  {"name": "qwen2.5:7b", "parameter_count": "7B", "parameters_b": 7.0, "use_case": "chat", "quality_score": 80, "ollama": true, "backends": ["ollama"]},
+  {"name": "qwen2.5:14b", "parameter_count": "14B", "parameters_b": 14.0, "use_case": "reasoning", "quality_score": 84, "ollama": true, "backends": ["ollama"]},
+  {"name": "deepseek-r1:8b", "parameter_count": "8B", "parameters_b": 8.0, "use_case": "reasoning", "quality_score": 86, "ollama": true, "backends": ["ollama"]},
+  {"name": "mistral:7b", "parameter_count": "7B", "parameters_b": 7.0, "use_case": "chat", "quality_score": 77, "ollama": true, "backends": ["ollama"]},
+  {"name": "codellama:7b", "parameter_count": "7B", "parameters_b": 7.0, "use_case": "coding", "quality_score": 79, "ollama": true, "backends": ["ollama"]},
+  {"name": "phi3:mini", "parameter_count": "3.8B", "parameters_b": 3.8, "use_case": "chat", "quality_score": 73, "ollama": true, "backends": ["ollama"]},
+  {"name": "gemma2:9b", "parameter_count": "9B", "parameters_b": 9.0, "use_case": "chat", "quality_score": 81, "ollama": true, "backends": ["ollama"]},
+  {"name": "TheBloke/Llama-2-7B-Chat-GGUF", "parameter_count": "7B", "parameters_b": 7.0, "use_case": "chat", "quality_score": 70, "format": "GGUF", "backends": ["llama-cpp", "vllm"]},
+  {"name": "meta-llama/Meta-Llama-3-8B-Instruct", "parameter_count": "8B", "parameters_b": 8.0, "use_case": "chat", "quality_score": 82, "format": "HF", "backends": ["vllm", "ollama"]},
+  {"name": "Qwen/Qwen2.5-Coder-7B-Instruct", "parameter_count": "7B", "parameters_b": 7.0, "use_case": "coding", "quality_score": 85, "format": "HF", "backends": ["vllm", "ollama"]},
+  {"name": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", "parameter_count": "7B", "parameters_b": 7.0, "use_case": "reasoning", "quality_score": 87, "format": "HF", "backends": ["vllm", "ollama"]}
+]

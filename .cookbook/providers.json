@@ -1,0 +1,7 @@
+{
+  "ollama": {
+    "type": "ollama",
+    "base_url": "0.0.0.0:11434"
+  },
+  "custom": []
+}
