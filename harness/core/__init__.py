@@ -1,4 +1,4 @@
-"""Core primitives for the Alison harness."""
+"""Core primitives for the Adisn harness."""
 
 from harness.core.agent import HarnessAgent
 from harness.core.context_window import ContextWindowManager

@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from harness.core.task_complexity import is_complex_task, should_create_skill
+
 
 @dataclass
 class SkillDescriptor:
@@ -45,6 +47,8 @@ class SkillStore:
             self._ensure_type_folder(item)
 
     def generate_from_task(self, task: str) -> SkillDescriptor:
+        if not should_create_skill(task):
+            raise ValueError("task is not complex enough to persist a new skill")
         skill_type = self._infer_type(task)
         name = self._skill_name(task)
         path = self._ensure_type_folder(skill_type) / f"{name}.md"
@@ -77,6 +81,8 @@ class SkillStore:
         return descriptor
 
     def match(self, task: str) -> Optional[SkillDescriptor]:
+        if not is_complex_task(task):
+            return None
         candidates = self._load_global_index()
         task_terms = set(self._keywords(task))
         best: Optional[Dict] = None

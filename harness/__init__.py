@@ -1,4 +1,4 @@
-"""Public package entry points for the Alison harness."""
+"""Public package entry points for the Adisn harness."""
 
 from harness.core.agent import HarnessAgent
 

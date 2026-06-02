@@ -1,4 +1,4 @@
-"""Simple runtime smoke tests for Alison harness."""
+"""Simple runtime smoke tests for Adisn harness."""
 
 from __future__ import annotations
 

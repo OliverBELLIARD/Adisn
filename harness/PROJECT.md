@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Hybrid Agent Harness is a self-improving AI agent framework built within the Alison repository. It combines capabilities from:
+The Hybrid Agent Harness is a self-improving AI agent framework built within the Adisn repository. It combines capabilities from:
 
 1. **Claude Code** - Terminal automation, CLI tools, browser integration
 2. **Hermes** - Dynamic skill generation from task descriptions

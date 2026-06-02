@@ -1,4 +1,4 @@
-"""Terminal display helpers for Alison CLI."""
+"""Terminal display helpers for Adisn CLI."""
 
 from __future__ import annotations
 

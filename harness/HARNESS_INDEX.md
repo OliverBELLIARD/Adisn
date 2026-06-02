@@ -5,7 +5,7 @@ Complete file index for the Hybrid Agent Harness.
 ## Package Structure
 
 ```
-Alison/
+Adisn/
 ├── harness/
 │   ├── __init__.py              # Package init
 │   ├── __main__.py              # Module entry point

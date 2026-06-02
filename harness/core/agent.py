@@ -1,4 +1,4 @@
-"""Primary Alison harness agent."""
+"""Primary Adisn harness agent."""
 
 from __future__ import annotations
 
@@ -15,7 +15,9 @@ from harness.core.messages import OLLAMA_WARNING
 from harness.core.questbook import Questbook
 from harness.core.self_rewriter import SelfRewriter
 from harness.core.skill_store import SkillStore
-from harness.core.thinking import ThinkingMode
+from harness.core.direct_reply import try_direct_reply
+from harness.core.task_complexity import is_complex_task, should_create_skill
+from harness.core.thinking import ThinkingMode, local_thinking_plan
 from harness.memory.memory_manager import MemoryManager
 
 
@@ -80,10 +82,44 @@ class HarnessAgent:
             if on_progress:
                 on_progress({"kind": kind, **fields})
 
+        direct = try_direct_reply(request)
+        if direct:
+            emit("headline", text="Replying…")
+            return self._finalize_request(
+                request,
+                message=direct,
+                thinking="",
+                use_thinking=use_thinking,
+                warning=warning,
+                server_running=server_running,
+                matched=None,
+                created=False,
+                predicted=self._predict_action(request),
+                loop_result={"steps": [], "loop_steps": 0, "ollama_used": False},
+            )
+
+        if not is_complex_task(request):
+            emit("headline", text="Replying…")
+            turn = self._conversational_turn(
+                request, use_thinking=use_thinking, on_progress=on_progress
+            )
+            return self._finalize_request(
+                request,
+                message=turn["message"],
+                thinking=turn.get("thinking", ""),
+                use_thinking=use_thinking,
+                warning=warning,
+                server_running=server_running,
+                matched=None,
+                created=False,
+                predicted=self._predict_action(request),
+                loop_result=turn,
+            )
+
         emit("headline", text="Matching skills…")
         matched = self.skills.match(request)
         created = None
-        if matched is None:
+        if matched is None and should_create_skill(request):
             created = self.skills.generate_from_task(request)
             matched = created
 
@@ -144,18 +180,85 @@ class HarnessAgent:
             on_progress=on_progress,
         )
 
+        return self._finalize_request(
+            request,
+            message=loop_result["message"],
+            thinking=loop_result.get("thinking", "") if use_thinking else "",
+            use_thinking=use_thinking,
+            warning=warning,
+            server_running=server_running,
+            matched=matched,
+            created=created is not None,
+            predicted=predicted,
+            loop_result=loop_result,
+        )
+
+    def _conversational_turn(
+        self,
+        request: str,
+        *,
+        use_thinking: bool,
+        on_progress: Optional[Callable[[Dict[str, Any]], None]],
+    ) -> Dict[str, Any]:
+        """Single model call for simple prompts (no skill file, no multi-step loop)."""
+        server_running = self.is_ollama_server_running()
+        if server_running:
+            chat = self.cookbook.chat(
+                request, think=use_thinking, on_progress=on_progress
+            )
+            if chat.get("ok"):
+                return {
+                    "message": chat.get("message", ""),
+                    "thinking": chat.get("thinking", "") if use_thinking else "",
+                    "steps": [],
+                    "loop_steps": 0,
+                    "ollama_used": True,
+                }
+        plan = (
+            local_thinking_plan(
+                request,
+                predicted_action=self._predict_action(request),
+                skill_name=None,
+                scope=self.rewriter.get_scope(),
+                ollama_available=server_running,
+            )
+            if use_thinking
+            else ""
+        )
+        return {
+            "message": request.strip(),
+            "thinking": plan,
+            "steps": [],
+            "loop_steps": 0,
+            "ollama_used": False,
+        }
+
+    def _finalize_request(
+        self,
+        request: str,
+        *,
+        message: str,
+        thinking: str,
+        use_thinking: bool,
+        warning: Optional[str],
+        server_running: bool,
+        matched,
+        created: bool,
+        predicted: str,
+        loop_result: Dict[str, Any],
+    ) -> Dict:
         self.context.add("user", request)
         response = {
             "request": request,
-            "message": loop_result["message"],
-            "thinking": loop_result.get("thinking") if use_thinking else None,
+            "message": message,
+            "thinking": thinking if use_thinking and thinking else None,
             "thinking_enabled": use_thinking,
             "agent_loop": {
                 "steps": loop_result.get("steps", []),
                 "step_count": loop_result.get("loop_steps", 0),
             },
             "skill": asdict(matched) if matched else None,
-            "created_new_skill": created is not None,
+            "created_new_skill": created,
             "next_action": predicted,
             "ollama_used": loop_result.get("ollama_used", False),
             "ollama_server_running": server_running,

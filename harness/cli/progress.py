@@ -26,7 +26,11 @@ def progress_handler_for_live(live: ActivityRenderer) -> Callable[[Dict], None]:
                 active=bool(event.get("active")),
             )
         elif kind == "thinking":
-            live.push_thinking(str(event.get("text", "")))
+            text = str(event.get("text", ""))
+            if event.get("streaming"):
+                live.set_thinking_stream(text)
+            else:
+                live.push_thinking(text)
         elif kind == "token":
             live.set_response_preview(str(event.get("text", "")))
         elif kind == "loop_start":

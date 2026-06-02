@@ -1,4 +1,4 @@
-"""Questbook: local Ollama model management for Alison."""
+"""Questbook: local Ollama model management for Adisn."""
 
 from __future__ import annotations
 
@@ -15,7 +15,12 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from harness.core.ollama_url import resolve_ollama_hosts
-from harness.core.thinking import split_thinking_and_response
+from harness.core.thinking import (
+    merge_chat_thinking,
+    model_supports_native_thinking,
+    ollama_think_parameter,
+    split_thinking_and_response,
+)
 
 
 @dataclass
@@ -164,15 +169,15 @@ class Questbook:
             return {"ok": False, "error": "no_local_models"}
 
         timeout = timeout if timeout is not None else self.DEFAULT_CHAT_TIMEOUT
-        think_tag = "think"
-        system = (
-            "You are Alison, a local coding harness assistant. "
-            f"When extended thinking is enabled, put reasoning inside <{think_tag}>...</{think_tag}> "
-            "before your final answer."
-            if think
-            else "You are Alison, a local coding harness assistant."
-        )
-        payload = {
+        native_think = think and model_supports_native_thinking(chosen)
+        system = "You are Adisn, a local coding harness assistant."
+        if think and not native_think:
+            tag = "think"
+            system += (
+                f" Put private reasoning inside <{tag}>...</{tag}> "
+                "before the user-visible answer."
+            )
+        payload: Dict[str, Any] = {
             "model": chosen,
             "messages": [
                 {"role": "system", "content": system},
@@ -180,6 +185,10 @@ class Questbook:
             ],
             "stream": bool(on_progress),
         }
+        if native_think:
+            payload["think"] = ollama_think_parameter(chosen, True)
+        elif think:
+            payload["think"] = False
         url = f"{self.host}/api/chat"
         body = json.dumps(payload).encode("utf-8")
         request = urllib.request.Request(
@@ -191,12 +200,17 @@ class Questbook:
         try:
             with urllib.request.urlopen(request, timeout=timeout) as resp:
                 if on_progress:
-                    content = self._read_streaming_chat(
-                        resp, on_progress=on_progress, model=chosen
+                    native_trace, content = self._read_streaming_chat(
+                        resp,
+                        on_progress=on_progress,
+                        model=chosen,
+                        native_think=native_think,
                     )
                 else:
                     data = json.loads(resp.read().decode("utf-8"))
-                    content = data.get("message", {}).get("content", "")
+                    msg = data.get("message", {}) or {}
+                    native_trace = msg.get("thinking", "")
+                    content = msg.get("content", "")
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
             if (
@@ -218,12 +232,13 @@ class Questbook:
         except (urllib.error.URLError, TimeoutError) as exc:
             return {"ok": False, "error": str(exc)}
 
-        thinking, visible = split_thinking_and_response(content)
+        thinking, visible = merge_chat_thinking(native_trace, content)
         return {
             "ok": True,
             "model": chosen,
             "message": visible or content,
             "thinking": thinking,
+            "thinking_native": bool(native_think and thinking),
             "raw": content,
         }
 
@@ -233,9 +248,11 @@ class Questbook:
         *,
         on_progress: Callable[[Dict[str, Any]], None],
         model: str,
-    ) -> str:
-        """Read Ollama NDJSON stream and emit token previews."""
-        parts: List[str] = []
+        native_think: bool = False,
+    ) -> tuple[str, str]:
+        """Read Ollama NDJSON stream; emit thinking then answer (Anthropic-style)."""
+        thinking_parts: List[str] = []
+        content_parts: List[str] = []
         on_progress({"kind": "model", "active": True, "model": model})
         for raw_line in resp:
             line = raw_line.decode("utf-8", errors="replace").strip()
@@ -245,14 +262,25 @@ class Questbook:
                 chunk = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            token = chunk.get("message", {}).get("content", "")
+            msg = chunk.get("message", {}) or {}
+            trace = msg.get("thinking", "")
+            token = msg.get("content", "")
+            if trace:
+                thinking_parts.append(trace)
+                on_progress(
+                    {
+                        "kind": "thinking",
+                        "text": "".join(thinking_parts),
+                        "streaming": True,
+                    }
+                )
             if token:
-                parts.append(token)
-                on_progress({"kind": "token", "text": "".join(parts)})
+                content_parts.append(token)
+                on_progress({"kind": "token", "text": "".join(content_parts)})
             if chunk.get("done"):
                 break
         on_progress({"kind": "model", "active": False, "model": model})
-        return "".join(parts)
+        return "".join(thinking_parts), "".join(content_parts)
 
     def start_server(self, wait_seconds: Optional[float] = None) -> Dict:
         """Start `ollama serve` in the background if not already healthy."""
@@ -295,7 +323,7 @@ class Questbook:
             "configured_host": self.configured_host,
             "pid": state.get("pid"),
             "hint": (
-                "Ollama may be bound on 0.0.0.0 — Alison probes "
+                "Ollama may be bound on 0.0.0.0 — Adisn probes "
                 f"{self.client_url}. Try `curl {self.client_url}/api/tags`."
             ),
         }
@@ -327,7 +355,11 @@ class Questbook:
         """Pick an installed model; ignore stale active/env names that 404."""
         names = self.installed_model_names()
         if not names:
-            return (preferred or os.environ.get("ALISON_OLLAMA_MODEL", "")).strip() or None
+            env = (
+                os.environ.get("ADISN_OLLAMA_MODEL", "").strip()
+                or os.environ.get("ALISON_OLLAMA_MODEL", "").strip()
+            )
+            return (preferred or env) or None
 
         def pick(name: Optional[str]) -> Optional[str]:
             if not name:
@@ -343,7 +375,10 @@ class Questbook:
         resolved = pick(preferred)
         if resolved:
             return resolved
-        env = os.environ.get("ALISON_OLLAMA_MODEL", "").strip()
+        env = (
+            os.environ.get("ADISN_OLLAMA_MODEL", "").strip()
+            or os.environ.get("ALISON_OLLAMA_MODEL", "").strip()
+        )
         resolved = pick(env)
         if resolved:
             return resolved

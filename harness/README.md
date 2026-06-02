@@ -1,6 +1,6 @@
 # Harness Runtime
 
-This directory contains the active Alison runtime.
+This directory contains the active Adisn runtime.
 
 ## Design Goals
 

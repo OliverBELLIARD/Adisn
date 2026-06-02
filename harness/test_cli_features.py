@@ -76,7 +76,7 @@ class TestCliFeatures(unittest.TestCase):
 
         env = {**os.environ, "OLLAMA_HOST": "127.0.0.1:19999"}
         proc = subprocess.run(
-            [sys.executable, "-m", "alison"],
+            [sys.executable, "-m", "adisn"],
             input="/quit\n",
             cwd=REPO_ROOT,
             capture_output=True,

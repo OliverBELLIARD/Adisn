@@ -72,15 +72,15 @@
     "path": "skills\\analysis\\say-hello.md"
   },
   {
-    "name": "hello-alison",
+    "name": "hello-adisn",
     "skill_type": "analysis",
-    "description": "hello alison",
+    "description": "hello adisn",
     "trigger_keywords": [
       "hello",
-      "alison"
+      "adisn"
     ],
     "created_at": "2026-06-02T16:50:01.618260Z",
-    "path": "skills\\analysis\\hello-alison.md"
+    "path": "skills\\analysis\\hello-adisn.md"
   },
   {
     "name": "test-thinking-mode",

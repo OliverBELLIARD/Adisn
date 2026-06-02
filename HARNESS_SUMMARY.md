@@ -2,7 +2,7 @@
 
 ## Build Status: ✓ COMPLETE
 
-The Hybrid Agent Harness has been successfully built in the Alison repository.
+The Hybrid Agent Harness has been successfully built in the Adisn repository.
 
 ## What Was Built
 

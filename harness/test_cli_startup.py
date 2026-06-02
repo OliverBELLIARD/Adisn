@@ -1,4 +1,4 @@
-"""Verify Alison interactive startup banner matches Claude Code layout."""
+"""Verify Adisn interactive startup banner matches Claude Code layout."""
 
 from __future__ import annotations
 
@@ -41,12 +41,12 @@ class TestCliStartupBanner(unittest.TestCase):
         """Left-column glyphs are the same as Claude Code's documented startup art."""
         _ensure_utf8_stdout()
         rows = _compose_startup_banner(create_harness())
-        alison_left = [r.split("   ", 1)[0].rstrip() for r in rows]
-        self.assertEqual(CLAUDE_CODE_LEFT_ART, alison_left)
+        adisn_left = [r.split("   ", 1)[0].rstrip() for r in rows]
+        self.assertEqual(CLAUDE_CODE_LEFT_ART, adisn_left)
 
     def test_module_entrypoint_prints_block_art_on_launch(self) -> None:
         proc = subprocess.run(
-            [sys.executable, "-m", "alison"],
+            [sys.executable, "-m", "adisn"],
             input="/quit\n",
             cwd=REPO_ROOT,
             capture_output=True,
@@ -59,8 +59,8 @@ class TestCliStartupBanner(unittest.TestCase):
         out = proc.stdout
         for art_line in CLAUDE_CODE_LEFT_ART:
             self.assertIn(art_line, out, msg=f"missing art line in stdout:\n{out}")
-        self.assertIn("Alison Code v", out)
-        self.assertIn("Exiting Alison.", out)
+        self.assertIn("Adisn Code v", out)
+        self.assertIn("Exiting Adisn.", out)
 
 
 if __name__ == "__main__":

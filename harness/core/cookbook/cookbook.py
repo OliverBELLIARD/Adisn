@@ -173,7 +173,7 @@ class Cookbook:
             "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         }
         self.active_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        os.environ["ALISON_OLLAMA_MODEL"] = model
+        os.environ["ADISN_OLLAMA_MODEL"] = model
         return {"ok": True, "active_model": model}
 
     def get_active_model(self) -> Optional[str]:
@@ -185,7 +185,11 @@ class Cookbook:
             except json.JSONDecodeError:
                 pass
         if not preferred:
-            preferred = os.environ.get("ALISON_OLLAMA_MODEL", "").strip() or None
+            preferred = (
+                os.environ.get("ADISN_OLLAMA_MODEL", "").strip()
+                or os.environ.get("ALISON_OLLAMA_MODEL", "").strip()
+                or None
+            )
         resolved = self.questbook.resolve_model(preferred)
         if resolved and resolved != preferred:
             self.set_active_model(resolved)

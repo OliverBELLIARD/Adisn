@@ -101,6 +101,14 @@ class ActivityRenderer:
                 if len(self._state.thinking_lines) > 8:
                     self._state.thinking_lines = self._state.thinking_lines[-8:]
 
+    def set_thinking_stream(self, text: str) -> None:
+        """Replace thinking preview (Ollama native think stream)."""
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        if not lines and text.strip():
+            lines = [text.strip()[:200]]
+        with self._lock:
+            self._state.thinking_lines = lines[-8:]
+
     def set_response_preview(self, text: str) -> None:
         preview = text.strip()
         if len(preview) > 120:

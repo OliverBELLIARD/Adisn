@@ -1,4 +1,4 @@
-"""Run every Alison CLI command and report pass/fail (audit harness)."""
+"""Run every Adisn CLI command and report pass/fail (audit harness)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 def _run_interactive(script: str, timeout: int = 45) -> tuple[int, str, str]:
     proc = subprocess.run(
-        [sys.executable, "-m", "alison"],
+        [sys.executable, "-m", "adisn"],
         input=script,
         cwd=REPO_ROOT,
         capture_output=True,
@@ -27,7 +27,7 @@ def _run_interactive(script: str, timeout: int = 45) -> tuple[int, str, str]:
 
 
 def _run_tool(action: str, value: str = "", timeout: int = 30) -> tuple[int, dict]:
-    cmd = [sys.executable, "-m", "alison", "tool", "--tool-flag", "--tool-action", action]
+    cmd = [sys.executable, "-m", "adisn", "tool", "--tool-flag", "--tool-action", action]
     if value:
         cmd.extend(["--tool-input", value])
     proc = subprocess.run(
@@ -48,7 +48,7 @@ def _run_tool(action: str, value: str = "", timeout: int = 30) -> tuple[int, dic
 
 def _run_cli(command: str) -> tuple[int, str]:
     proc = subprocess.run(
-        [sys.executable, "-m", "alison", command],
+        [sys.executable, "-m", "adisn", command],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -70,7 +70,7 @@ class TestAllCommandsAudit(unittest.TestCase):
     def test_non_interactive_help(self) -> None:
         code, out = _run_cli("help")
         self.assertEqual(0, code)
-        self.assertIn("alison", out.lower())
+        self.assertIn("adisn", out.lower())
 
     def test_slash_help(self) -> None:
         code, out, _ = _run_interactive("/help\n/quit\n")

@@ -1,4 +1,4 @@
-"""Interactive CLI for the Alison harness runtime."""
+"""Interactive CLI for the Adisn harness runtime."""
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def _ascii_art_left() -> list[str]:
     ]
 
 
-ALISON_VERSION = "0.1.0"
+ADISN_VERSION = "0.1.0"
 
 
 def _startup_meta_lines(agent) -> list[str]:
@@ -77,7 +77,7 @@ def _startup_meta_lines(agent) -> list[str]:
         cwd_display = str(cwd)
     compact_pct = int(agent.context.compact_threshold_ratio * 100)
     return [
-        f"Alison Code v{ALISON_VERSION}",
+        f"Adisn Code v{ADISN_VERSION}",
         f"{scope} · {agent.context.max_tokens} tokens (compact @{compact_pct}%)",
         cwd_display,
     ]
@@ -108,7 +108,7 @@ def _attach_ctrl_c_reset_on_input(state: CtrlCExitState) -> None:
     from prompt_toolkit.application.current import get_app
 
     buf = get_app().current_buffer
-    if getattr(buf, "_alison_ctrl_c_reset_hook", False):
+    if getattr(buf, "_adisn_ctrl_c_reset_hook", False):
         return
 
     def _on_text_changed(_buffer) -> None:
@@ -116,7 +116,7 @@ def _attach_ctrl_c_reset_on_input(state: CtrlCExitState) -> None:
             state.reset()
 
     buf.on_text_changed += _on_text_changed
-    buf._alison_ctrl_c_reset_hook = True
+    buf._adisn_ctrl_c_reset_hook = True
 
 
 def _ctrl_c_key_bindings(state: CtrlCExitState) -> KeyBindings:
@@ -182,8 +182,8 @@ class SlashCommandCompleter(Completer):
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="alison",
-        description="Alison - self-evolving AI harness"
+        prog="adisn",
+        description="Adisn - self-evolving AI harness"
     )
     parser.add_argument(
         "command",
@@ -398,10 +398,10 @@ def run_interactive(args: argparse.Namespace):
             line = _read_interactive_line(session, ctrl_c_state)
             ctrl_c_state.reset()
         except KeyboardInterrupt:
-            print("\nExiting Alison.")
+            print("\nExiting Adisn.")
             break
         except EOFError:
-            print("Exiting Alison.")
+            print("Exiting Adisn.")
             break
         if not line:
             continue
@@ -418,7 +418,7 @@ def run_interactive(args: argparse.Namespace):
             print("Thinking blocks will show expanded text.")
             continue
         if line == "/quit":
-            print("Exiting Alison.")
+            print("Exiting Adisn.")
             break
         if line == "/status":
             print(json.dumps(agent.get_state(), indent=2))
@@ -503,7 +503,7 @@ def _read_interactive_line(session, ctrl_c_state: CtrlCExitState) -> str:
     return session.prompt(
         HTML(
             f"<ansibrightblack>{glyph}</ansibrightblack> "
-            "<ansicyan>alison</ansicyan> > "
+            "<ansicyan>adisn</ansicyan> > "
         ),
         pre_run=lambda: _attach_ctrl_c_reset_on_input(ctrl_c_state),
     ).strip()
@@ -607,13 +607,13 @@ def _build_prompt_session(
 
 
 def _plain_prompt_text() -> str:
-    return f"{_cli_glyph()} alison > "
+    return f"{_cli_glyph()} adisn > "
 
 
 def _render_startup_cli(agent) -> None:
     """Render startup banner every launch (Claude Code-style left ASCII art)."""
-    if os.environ.get("ALISON_NO_BANNER", "").strip() in {"1", "true", "yes"}:
-        print("Alison interactive mode")
+    if os.environ.get("ADISN_NO_BANNER", "").strip() in {"1", "true", "yes"}:
+        print("Adisn interactive mode")
         print("Type `/help` for commands.\n")
         return
 
@@ -644,7 +644,7 @@ def _slash_command_specs() -> list[SlashCommandSpec]:
             "/think",
             "/think",
         ),
-        SlashCommandSpec("/status", "System", "Show Alison runtime status", "/status", "/status"),
+        SlashCommandSpec("/status", "System", "Show Adisn runtime status", "/status", "/status"),
         SlashCommandSpec("/scope", "System", "Switch rewrite scope mode", "/scope <global|workspace>", "/scope workspace"),
         SlashCommandSpec("/quit", "System", "Exit interactive mode", "/quit", "/quit"),
         SlashCommandSpec(
@@ -751,4 +751,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\nExiting Alison.")
+        print("\nExiting Adisn.")

@@ -8,6 +8,8 @@ from harness.core.thinking import (
     ThinkingMode,
     format_thinking_for_display,
     local_thinking_plan,
+    merge_chat_thinking,
+    model_supports_native_thinking,
     split_thinking_and_response,
 )
 
@@ -44,6 +46,14 @@ class TestThinkingMode(unittest.TestCase):
         )
         self.assertIn("offline", plan.lower())
         self.assertIn("debug", plan)
+
+    def test_native_thinking_field_separate_from_content(self) -> None:
+        thinking, visible = merge_chat_thinking("step one", "Hello")
+        self.assertEqual("step one", thinking)
+        self.assertEqual("Hello", visible)
+
+    def test_qwen3_supports_native_think(self) -> None:
+        self.assertTrue(model_supports_native_thinking("qwen3.5:latest"))
 
     def test_format_collapses_long_thinking(self) -> None:
         text = "\n".join(f"line {i}" for i in range(10))

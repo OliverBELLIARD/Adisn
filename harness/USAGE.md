@@ -51,7 +51,7 @@ harness> bash --version
 
 harness> read README.md
 [Result] {
-  "content": "# Alison\n...\n"
+  "content": "# Adisn\n...\n"
 }
 
 harness> write test.txt "Hello World"

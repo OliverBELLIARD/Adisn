@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional
 from harness.core.direct_reply import request_needs_skill_workflow, try_direct_reply
 from harness.core.thinking import ThinkingMode, local_thinking_plan, split_thinking_and_response
 
-LOOP_SYSTEM = """You are Alison, a coding harness agent. Work like Claude Code:
+LOOP_SYSTEM = """You are Adisn, a coding harness agent. Work like Claude Code:
 1) Think through the request in a  block before acting.
 2) Decide ONE next step as JSON on its own line: {"action":"...","input":"...","reason":"..."}
 Valid actions: respond, use_skill, note, finish
@@ -208,12 +208,14 @@ class AgentLoop:
         if on_progress:
             on_progress({"kind": "model", "active": False, "phase": "think"})
         if chat.get("ok"):
-            thinking = chat.get("thinking") or ""
-            if thinking:
-                return thinking
-            content = chat.get("message", "")
-            t, _ = split_thinking_and_response(content)
-            return t or local
+            native = (chat.get("thinking") or "").strip()
+            if native:
+                return native
+            raw = chat.get("raw") or chat.get("message", "")
+            t, _ = split_thinking_and_response(raw)
+            if t:
+                return t
+            return local
         return local + f"\n(chat unavailable: {chat.get('error')})"
 
     def _decide_step(

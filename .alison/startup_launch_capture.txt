@@ -1,5 +1,0 @@
- ÔûÉÔûøÔûêÔûêÔûêÔû£Ôûî    Alison Code v0.1.0
-ÔûØÔû£ÔûêÔûêÔûêÔûêÔûêÔûøÔûÿ   global-unsafe ┬À 50000 tokens (compact @85%)
-  ÔûÿÔûÿ ÔûØÔûØ     ~/Documents/workspace_cli/Alison
-
-Ô£╗ alison > Exiting Alison.
