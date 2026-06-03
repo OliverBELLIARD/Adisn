@@ -410,7 +410,7 @@ class Questbook:
         try:
             with urllib.request.urlopen(url, timeout=self.SERVER_PROBE_TIMEOUT) as resp:
                 return 200 <= resp.status < 300
-        except (urllib.error.URLError, TimeoutError):
+        except (urllib.error.URLError, TimeoutError, OSError):
             return False
 
     def _read_server_state(self) -> Dict:
@@ -428,16 +428,14 @@ class Questbook:
             "stdin": subprocess.DEVNULL,
             "cwd": str(self.workspace_root),
         }
-        if shutil.which("powershell"):
+        popen_kwargs: Dict[str, Any] = {**kwargs}
+        if os.name == "nt":
             detached = getattr(subprocess, "DETACHED_PROCESS", 0)
             new_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-            proc = subprocess.Popen(
-                ["powershell", "-NoProfile", "-Command", "ollama serve"],
-                creationflags=detached | new_group,
-                **kwargs,
-            )
+            popen_kwargs["creationflags"] = detached | new_group
         else:
-            proc = subprocess.Popen(["ollama", "serve"], **kwargs)
+            popen_kwargs["start_new_session"] = True
+        proc = subprocess.Popen(["ollama", "serve"], **popen_kwargs)
         self.server_state_file.write_text(
             json.dumps(
                 {

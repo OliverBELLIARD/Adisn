@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import sys
@@ -521,6 +522,11 @@ def _read_subprompt_line(session, ctrl_c_state: CtrlCExitState, prompt: str) -> 
     return line
 
 
+def _escape_html(text: str) -> str:
+    """Escape dynamic text embedded in prompt_toolkit HTML toolbars."""
+    return html.escape(text, quote=False)
+
+
 def _build_prompt_session(
     specs: list[SlashCommandSpec], ctrl_c_state: CtrlCExitState
 ) -> PromptSession:
@@ -542,7 +548,9 @@ def _build_prompt_session(
             lines = ["<ansicyan>Slash Command Panel</ansicyan>"]
             for group in sorted(by_group):
                 group_cmds = ", ".join(item.command for item in by_group[group])
-                lines.append(f"<ansigreen>{group}</ansigreen>: {group_cmds}")
+                lines.append(
+                    f"<ansigreen>{_escape_html(group)}</ansigreen>: {_escape_html(group_cmds)}"
+                )
             lines.append("<ansibrightblack>Tab: autocomplete · Enter: run · /help: full list</ansibrightblack>")
             return HTML("\n".join(lines))
 
@@ -550,14 +558,14 @@ def _build_prompt_session(
             m = matches[0]
             return HTML(
                 "<ansicyan>command</ansicyan>: "
-                f"{m.command} | <ansigreen>{m.description}</ansigreen> | "
-                f"<ansibrightblack>usage: {m.usage}</ansibrightblack>"
+                f"{_escape_html(m.command)} | <ansigreen>{_escape_html(m.description)}</ansigreen> | "
+                f"<ansibrightblack>usage: {_escape_html(m.usage)}</ansibrightblack>"
             )
 
         shown = "  ".join(m.command for m in matches[:8])
         return HTML(
             "<ansicyan>matches</ansicyan>: "
-            f"{shown} "
+            f"{_escape_html(shown)} "
             "<ansibrightblack>(press Tab to cycle)</ansibrightblack>"
         )
 

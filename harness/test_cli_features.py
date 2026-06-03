@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from harness.cli.cookbook_commands import format_cookbook_result
 from harness.cli.display import OLLAMA_WARNING, print_agent_response
-from harness.cli.main import _handle_user_prompt, _slash_command_specs
+from harness.cli.main import _escape_html, _handle_user_prompt, _slash_command_specs
 from harness.core.agent import HarnessAgent
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -23,6 +23,16 @@ class TestCliFeatures(unittest.TestCase):
         self.assertIn("/think", commands)
         self.assertIn("/cookbook scan", commands)
         self.assertIn("/cookbook recommend", commands)
+
+    def test_toolbar_html_escapes_usage_placeholders(self) -> None:
+        from prompt_toolkit.formatted_text import HTML
+
+        spec = next(s for s in _slash_command_specs() if s.command == "/cookbook recommend")
+        HTML(
+            "<ansicyan>command</ansicyan>: "
+            f"{_escape_html(spec.command)} | <ansigreen>{_escape_html(spec.description)}</ansigreen> | "
+            f"<ansibrightblack>usage: {_escape_html(spec.usage)}</ansibrightblack>"
+        )
 
     @patch("harness.cli.main.print_agent_response")
     @patch("harness.cli.main.ActivityRenderer")
