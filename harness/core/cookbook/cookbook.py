@@ -42,6 +42,7 @@ class Cookbook:
         self.hardware_cache = self.root / "hardware.json"
         self.providers_file = self.root / "providers.json"
         self.active_file = self.root / "active.json"
+        self.toolkit_file = self.root / "toolkit.json"
         self._ensure_providers()
 
     def scan(self, *, refresh: bool = False) -> Dict[str, Any]:
@@ -156,6 +157,7 @@ class Cookbook:
         return {
             "ok": True,
             "active_model": active,
+            "active_toolkit": self.get_toolkit_name(),
             "hardware_summary": {
                 "vram_budget_gb": hw.vram_budget_gb,
                 "ram_gb": hw.ram_gb,
@@ -175,6 +177,18 @@ class Cookbook:
         self.active_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         os.environ["ADISN_OLLAMA_MODEL"] = model
         return {"ok": True, "active_model": model}
+
+    def set_toolkit(self, name: str) -> Dict[str, Any]:
+        self.toolkit_file.write_text(json.dumps({"toolkit": name}), encoding="utf-8")
+        return {"ok": True, "toolkit": name}
+
+    def get_toolkit_name(self) -> str:
+        if self.toolkit_file.exists():
+            try:
+                return json.loads(self.toolkit_file.read_text(encoding="utf-8")).get("toolkit", "claude")
+            except (json.JSONDecodeError, KeyError):
+                pass
+        return "claude"
 
     def get_active_model(self) -> Optional[str]:
         preferred: Optional[str] = None

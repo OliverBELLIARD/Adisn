@@ -13,8 +13,8 @@ class MemoryManager:
 
     def __init__(self, base_dir: Path):
         self.base_dir = base_dir
-        self.memory_dir = base_dir / ".remember"
-        self.memory_dir.mkdir(exist_ok=True)
+        self.memory_dir = base_dir / ".adisn" / "chats"
+        self.memory_dir.mkdir(parents=True, exist_ok=True)
         self.now_file = self.memory_dir / "now.md"
         self.recent_file = self.memory_dir / "recent.md"
         self.index_file = self.memory_dir / "index.json"
@@ -46,6 +46,21 @@ class MemoryManager:
 
     def count_entries(self) -> int:
         return len(json.loads(self.index_file.read_text(encoding="utf-8")))
+
+    def get_distribution(self) -> Dict[str, Any]:
+        entries = json.loads(self.index_file.read_text(encoding="utf-8"))
+        dist = {}
+        total_tokens = 0
+        for e in entries:
+            cat = e.get("category", "unknown")
+            tokens = e.get("tokens_estimate", 0)
+            dist[cat] = dist.get(cat, 0) + tokens
+            total_tokens += tokens
+        return {
+            "total_entries": len(entries),
+            "total_tokens_estimate": total_tokens,
+            "categories": dist
+        }
 
     def _append_index(self, category: str, summary: str, content: str) -> None:
         entries = json.loads(self.index_file.read_text(encoding="utf-8"))

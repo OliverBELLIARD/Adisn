@@ -217,6 +217,9 @@ def main():
             "ollama_rm",
             "ollama_ensure_profile",
             "ollama_serve",
+            "memory",
+            "toolkit",
+            "resume",
             "cookbook_scan",
             "cookbook_recommend",
             "cookbook_status",
@@ -289,6 +292,16 @@ def execute_tool_action(agent, action: str, value: str, payload: dict | None = N
         return agent.get_state()
     if action == "process":
         return agent.process_request(value)
+    if action == "memory":
+        return agent.memory.get_distribution()
+    if action == "toolkit":
+        if not value:
+            return {"error": "missing toolkit name"}
+        return agent.cookbook.set_toolkit(value)
+    if action == "resume":
+        if not value:
+            return agent.list_chats()
+        return agent.resume_chat(value)
     if action == "scope":
         if not value:
             return {"error": "missing scope in --tool-input (global|workspace)"}
@@ -424,6 +437,15 @@ def run_interactive(args: argparse.Namespace):
         if line == "/status":
             print(json.dumps(agent.get_state(), indent=2))
             continue
+        if line == "/memory":
+            dist = agent.memory.get_distribution()
+            print("\nMemory Usage Distribution:")
+            print(f"Total entries: {dist['total_entries']}")
+            print(f"Total tokens (est): {dist['total_tokens_estimate']}")
+            for cat, tokens in dist['categories'].items():
+                pct = (tokens / dist['total_tokens_estimate'] * 100) if dist['total_tokens_estimate'] > 0 else 0
+                print(f"  {cat:15} : {tokens:5} tokens ({pct:5.1f}%)")
+            continue
         if line.startswith("/scope "):
             _, scope = line.split(" ", 1)
             print(json.dumps(agent.set_scope(scope.strip()), indent=2))
@@ -469,6 +491,20 @@ def run_interactive(args: argparse.Namespace):
         if line.startswith("/ollama ensure-profile "):
             _, _, profile = line.partition("/ollama ensure-profile ")
             print(json.dumps(agent.ollama_ensure_profile(profile.strip()), indent=2))
+            continue
+        if line.startswith("/toolkit "):
+            _, name = line.split(" ", 1)
+            print(json.dumps(agent.cookbook.set_toolkit(name.strip()), indent=2))
+            continue
+        if line == "/resume":
+            chats = agent.list_chats()
+            print("\nAvailable Chats:")
+            for chat in chats.get("chats", []):
+                print(f"  {chat['name']}")
+            continue
+        if line.startswith("/resume "):
+            _, name = line.split(" ", 1)
+            print(json.dumps(agent.resume_chat(name.strip()), indent=2))
             continue
         if line.startswith("/cookbook"):
             args = line[len("/cookbook") :].strip()
@@ -653,6 +689,7 @@ def _slash_command_specs() -> list[SlashCommandSpec]:
             "/think",
         ),
         SlashCommandSpec("/status", "System", "Show Adisn runtime status", "/status", "/status"),
+        SlashCommandSpec("/memory", "System", "Show memory usage distribution", "/memory", "/memory"),
         SlashCommandSpec("/scope", "System", "Switch rewrite scope mode", "/scope <global|workspace>", "/scope workspace"),
         SlashCommandSpec("/quit", "System", "Exit interactive mode", "/quit", "/quit"),
         SlashCommandSpec(
@@ -681,6 +718,20 @@ def _slash_command_specs() -> list[SlashCommandSpec]:
             "Install all models required by a profile",
             "/ollama ensure-profile <name>",
             "/ollama ensure-profile balanced",
+        ),
+        SlashCommandSpec(
+            "/toolkit",
+            "System",
+            "Select tool-calling paradigm (claude|deepseek|qwen|gemma)",
+            "/toolkit <paradigm>",
+            "/toolkit deepseek",
+        ),
+        SlashCommandSpec(
+            "/resume",
+            "System",
+            "List or resume a previous conversation",
+            "/resume [chat_name]",
+            "/resume now.md",
         ),
         SlashCommandSpec(
             "/cookbook scan",

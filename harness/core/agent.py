@@ -18,6 +18,7 @@ from harness.core.skill_store import SkillStore
 from harness.core.direct_reply import try_direct_reply
 from harness.core.task_complexity import is_complex_task, should_create_skill
 from harness.core.thinking import ThinkingMode, local_thinking_plan
+from harness.core.toolkit import get_toolkit
 from harness.memory.memory_manager import MemoryManager
 
 
@@ -182,6 +183,7 @@ class HarnessAgent:
             thinking=self.thinking,
             chat_fn=chat_fn,
             server_running=server_running,
+            toolkit=get_toolkit(self.cookbook.get_toolkit_name()),
         )
 
         def local_act(action: str, ctx: Dict) -> Dict:
@@ -426,6 +428,49 @@ class HarnessAgent:
         result = self.questbook.ensure_profile(profile)
         self.memory.append_note("ollama-profile", f"{profile}: {result.get('ok')}")
         return result
+
+    def list_chats(self) -> Dict:
+        chats = []
+        # In a real impl, we might want to scan the chats dir for .md files
+        # For now, let's look at the index which tracks entries.
+        # But the prompt said 'select which conversation to load'.
+        # Let's assume we can load from 'now.md' or 'recent.md' or archived ones.
+        # Since MemoryManager currently only has now.md and recent.md,
+        # let's provide those as options.
+        for f in self.memory.memory_dir.glob("*.md"):
+            chats.append({"name": f.name, "path": str(f)})
+        return {"ok": True, "chats": chats}
+
+    def resume_chat(self, chat_name: str) -> Dict:
+        path = self.memory.memory_dir / chat_name
+        if not path.exists():
+            return {"ok": False, "error": f"Chat {chat_name} not found"}
+
+        content = path.read_text(encoding="utf-8")
+        # Very basic parsing: find ## timestamps and extract requests/responses
+        # and re-populate the context window.
+        lines = content.splitlines()
+        current_role = None
+        current_text = []
+
+        # Clear current context for resume
+        self.context.history = []
+
+        for line in lines:
+            if line.startswith("## "):
+                continue
+            if line.startswith("- request: "):
+                self.context.add("user", line[len("- request: "):])
+            elif line.startswith("- response: "):
+                resp_json = line[len("- response: "):]
+                try:
+                    resp_data = json.loads(resp_json)
+                    msg = resp_data.get("message", "")
+                    self.context.add("assistant", msg)
+                except json.JSONDecodeError:
+                    self.context.add("assistant", resp_json)
+
+        return {"ok": True, "message": f"Resumed from {chat_name}", "history_count": len(self.context.history)}
 
     @staticmethod
     def _predict_action(request: str) -> str:
