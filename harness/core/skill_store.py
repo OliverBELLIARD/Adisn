@@ -68,10 +68,11 @@ class SkillStore:
         )
         path.write_text(body, encoding="utf-8")
 
+        summary = self._generate_summary(task)
         descriptor = SkillDescriptor(
             name=name,
             skill_type=skill_type,
-            description=task[:180],
+            description=summary,
             trigger_keywords=keywords,
             created_at=created_at,
             path=str(path.relative_to(self.workspace_root)),
@@ -85,16 +86,38 @@ class SkillStore:
             return None
         candidates = self._load_global_index()
         task_terms = set(self._keywords(task))
+        task_l = task.lower()
         best: Optional[Dict] = None
         best_score = 0
         for item in candidates:
-            score = len(task_terms.intersection(set(item["trigger_keywords"])))
+            # Keyword overlap score
+            score = len(task_terms.intersection(set(item["trigger_keywords"]))) * 2
+            # Contextual summary match bonus
+            desc_l = item.get("description", "").lower()
+            if any(term in desc_l for term in task_terms):
+                score += 1
+            if item["name"].lower() in task_l:
+                score += 3
+
             if score > best_score:
                 best = item
                 best_score = score
-        if not best or best_score < 2:
+        if not best or best_score < 3:
             return None
         return SkillDescriptor(**best)
+
+    def _generate_summary(self, task: str) -> str:
+        """Create a concise one-line summary of the skill's purpose."""
+        clean = task.strip().replace("\n", " ")
+        # Heuristic: extract the first sentence or first 120 chars
+        match = re.match(r"^([^.!?]+[.!?])", clean)
+        if match:
+            summary = match.group(1)
+        else:
+            summary = clean[:120]
+        if len(summary) > 150:
+            summary = summary[:147] + "..."
+        return summary
 
     def _ensure_type_folder(self, skill_type: str) -> Path:
         folder = self.skills_root / skill_type

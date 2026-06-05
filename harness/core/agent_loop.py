@@ -137,11 +137,18 @@ class AgentLoop:
                 steps.append(step)
                 break
             if action == "respond":
+                # In Claude Code style, respond is often a mid-loop interaction.
+                # Only terminate if we're not in a complex multi-step workflow
+                # or if the model explicitly wants to finish.
                 final_message = action_input or self._fallback_response(request, skill_context)
-                step.observation = "responded"
+                step.observation = f"responded: {final_message[:50]}"
+                # If we've reached max steps or it's a simple request, we might stop.
+                # But for a true harness loop, we usually want to wait for 'finish'.
+                # Heuristic: if we have a skill, we keep going unless 'finish'.
                 step.duration_ms = int((time.perf_counter() - t0) * 1000)
                 steps.append(step)
-                break
+                if not skill_context.get("skill_name"):
+                    break
             if action == "use_skill":
                 result = local_act_fn("use_skill", {"skill": action_input, **skill_context})
                 obs = json.dumps(result, ensure_ascii=True)[:500]

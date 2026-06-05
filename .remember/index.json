@@ -1,0 +1,68 @@
+[
+  {
+    "time": "2026-06-05T14:32:26.669194Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": false, \"error\": \"ollama not found in PATH\", \"running\": false, \"started\": false, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://127.0.0.1:11",
+    "tokens_estimate": 53
+  },
+  {
+    "time": "2026-06-05T14:32:27.024854Z",
+    "category": "ollama-status",
+    "summary": "{\"ollama_installed\": false, \"server_running\": false, \"server_started\": false, \"models_count\": 0, \"questbook_index\": \".questbook/index.json\"}",
+    "tokens_estimate": 47
+  },
+  {
+    "time": "2026-06-05T14:32:27.415404Z",
+    "category": "rewrite",
+    "summary": "test -> /tmp/tmphtnodxmh/note.txt: {'ok': False, 'error': 'File not found: /tmp/tmphtnodxmh/note.txt'}",
+    "tokens_estimate": 36
+  },
+  {
+    "time": "2026-06-05T14:32:27.772203Z",
+    "category": "rollback",
+    "summary": "{'ok': False, 'error': 'No rewrite history'}",
+    "tokens_estimate": 22
+  },
+  {
+    "time": "2026-06-05T14:32:28.129209Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"workspace\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-05T14:32:28.140736Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"global\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-05T14:32:30.161428Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": false, \"error\": \"ollama not found in PATH\", \"running\": false, \"started\": false, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://127.0.0.1:11",
+    "tokens_estimate": 53
+  },
+  {
+    "time": "2026-06-05T14:32:30.494655Z",
+    "category": "interaction",
+    "summary": "hello tool mode",
+    "tokens_estimate": 272
+  },
+  {
+    "time": "2026-06-05T14:32:30.791416Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"workspace\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-05T14:32:31.514417Z",
+    "category": "interaction",
+    "summary": "ping",
+    "tokens_estimate": 255
+  },
+  {
+    "time": "2026-06-05T14:32:33.049239Z",
+    "category": "interaction",
+    "summary": "say hello",
+    "tokens_estimate": 263
+  }
+]
