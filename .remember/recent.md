@@ -23,3 +23,6 @@ test -> /tmp/tmphtnodxmh/note.txt: {'ok': False, 'error': 'File not found: /tmp/
 
 ## 2026-06-05T14:32:30.791227Z [scope]
 {"ok": true, "scope": "workspace"}
+
+## 2026-06-05T19:40:43.128907Z [ollama-serve]
+{"ok": true, "message": "Ollama server started", "running": true, "started": true, "host": "http://127.0.0.1:11434", "configured_host": "http://0.0.0.0:11434", "pid": 26108}
