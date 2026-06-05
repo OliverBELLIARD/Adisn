@@ -64,5 +64,71 @@
     "category": "interaction",
     "summary": "say hello",
     "tokens_estimate": 263
+  },
+  {
+    "time": "2026-06-05T15:03:04.644046Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": false, \"error\": \"ollama not found in PATH\", \"running\": false, \"started\": false, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://127.0.0.1:11",
+    "tokens_estimate": 53
+  },
+  {
+    "time": "2026-06-05T15:03:05.026101Z",
+    "category": "ollama-status",
+    "summary": "{\"ollama_installed\": false, \"server_running\": false, \"server_started\": false, \"models_count\": 0, \"questbook_index\": \".questbook/index.json\"}",
+    "tokens_estimate": 47
+  },
+  {
+    "time": "2026-06-05T15:03:05.443816Z",
+    "category": "rewrite",
+    "summary": "test -> /tmp/tmp676239as/note.txt: {'ok': False, 'error': 'File not found: /tmp/tmp676239as/note.txt'}",
+    "tokens_estimate": 36
+  },
+  {
+    "time": "2026-06-05T15:03:05.810439Z",
+    "category": "rollback",
+    "summary": "{'ok': False, 'error': 'No rewrite history'}",
+    "tokens_estimate": 22
+  },
+  {
+    "time": "2026-06-05T15:03:06.207751Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"workspace\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-05T15:03:06.219480Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"global\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-05T15:03:08.585714Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": false, \"error\": \"ollama not found in PATH\", \"running\": false, \"started\": false, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://127.0.0.1:11",
+    "tokens_estimate": 53
+  },
+  {
+    "time": "2026-06-05T15:03:08.998611Z",
+    "category": "interaction",
+    "summary": "hello tool mode",
+    "tokens_estimate": 272
+  },
+  {
+    "time": "2026-06-05T15:03:09.304687Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"workspace\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-05T15:03:10.060984Z",
+    "category": "interaction",
+    "summary": "ping",
+    "tokens_estimate": 255
+  },
+  {
+    "time": "2026-06-05T15:03:11.684644Z",
+    "category": "interaction",
+    "summary": "say hello",
+    "tokens_estimate": 263
   }
 ]

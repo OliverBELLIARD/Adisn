@@ -427,6 +427,34 @@ class HarnessAgent:
         self.memory.append_note("ollama-profile", f"{profile}: {result.get('ok')}")
         return result
 
+    def select_model_by_index(self, choice: str) -> Dict:
+        """Select a model by its 1-based index or by its name."""
+        models = self.questbook.read_cached_models()
+        if not models and self.is_ollama_server_running():
+            models = self.questbook.list_models(start_server=False)
+
+        if not models:
+            return {"ok": False, "error": "no models installed or Ollama is offline"}
+
+        target = None
+        if choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(models):
+                target = models[idx]["name"]
+            else:
+                return {"ok": False, "error": f"index {choice} out of range (1-{len(models)})"}
+        else:
+            # Match by name
+            for m in models:
+                if m["name"] == choice or m["name"].startswith(f"{choice}:"):
+                    target = m["name"]
+                    break
+
+        if not target:
+            return {"ok": False, "error": f"model '{choice}' not found"}
+
+        return self.cookbook.set_active_model(target)
+
     @staticmethod
     def _predict_action(request: str) -> str:
         text = request.lower()
