@@ -103,6 +103,28 @@ class HarnessAgent:
             turn = self._conversational_turn(
                 request, use_thinking=use_thinking, on_progress=on_progress
             )
+
+            # Convert single turn to a pseudo-loop for display/test purposes
+            pseudo_steps = []
+            if turn.get("thinking"):
+                pseudo_steps.append({
+                    "phase": "think",
+                    "thinking": turn["thinking"],
+                    "decision": {"action": "respond", "input": turn["message"]},
+                    "observation": "conversational",
+                    "duration_ms": 0
+                })
+
+            loop_result = {
+                **turn,
+                "steps": pseudo_steps,
+                "loop_steps": len(pseudo_steps)
+            }
+
+            if on_progress:
+                on_progress({"kind": "loop_start", "max_steps": 1, "request": request[:120]})
+                on_progress({"kind": "loop_done", "steps": len(pseudo_steps), "message_preview": turn["message"][:80]})
+
             return self._finalize_request(
                 request,
                 message=turn["message"],
@@ -113,7 +135,7 @@ class HarnessAgent:
                 matched=None,
                 created=False,
                 predicted=self._predict_action(request),
-                loop_result=turn,
+                loop_result=loop_result,
             )
 
         emit("headline", text="Matching skills…")

@@ -23,6 +23,9 @@ _COMPLEX_HINTS = (
     "skill",
     "test suite",
     "root cause",
+    "initialize",
+    "configure",
+    "optimize",
 )
 
 
@@ -33,21 +36,27 @@ def is_complex_task(request: str) -> bool:
         return False
     if try_direct_reply(text):
         return False
+
+    low = text.lower()
+    # Check for engineering intent hints
+    has_hint = any(hint in low for hint in _COMPLEX_HINTS)
+
     if request_needs_skill_workflow(text):
         return True
-    if len(text) > 140:
+
+    # Multi-sentence engineering requests
+    if has_hint and (text.count("\n") >= 1 or len(re.findall(r"[.!?]", text)) >= 2):
         return True
-    if text.count("\n") >= 2:
+
+    # Very long detailed requests with intent
+    if has_hint and len(text) > 200:
         return True
-    if len(re.findall(r"[.!?]", text)) >= 2:
-        return True
-    low = text.lower()
-    if any(hint in low for hint in _COMPLEX_HINTS):
-        return True
-    # Short conversational prompts (hello, thanks, single question)
-    if len(text) < 48 and "?" not in text:
+
+    # Default to False for basic chat even if long, unless it has clear engineering hints
+    if not has_hint:
         return False
-    return False
+
+    return True
 
 
 def should_create_skill(request: str) -> bool:

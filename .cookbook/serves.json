@@ -1,83 +1,13 @@
 {
   "serves": [
     {
-      "id": "ollama-bfb0df22",
+      "id": "ollama-efa57039",
       "backend": "ollama",
       "model": "llama3.2:3b",
       "port": 11434,
       "pid": null,
       "status": "active",
-      "started_at": "2026-06-02T18:04:38.842359Z",
-      "endpoint": "http://127.0.0.1:11434"
-    },
-    {
-      "id": "ollama-66101f87",
-      "backend": "ollama",
-      "model": "llama3.2:3b",
-      "port": 11434,
-      "pid": null,
-      "status": "active",
-      "started_at": "2026-06-02T18:05:07.573724Z",
-      "endpoint": "http://127.0.0.1:11434"
-    },
-    {
-      "id": "ollama-6764e770",
-      "backend": "ollama",
-      "model": "llama3.2:3b",
-      "port": 11434,
-      "pid": null,
-      "status": "active",
-      "started_at": "2026-06-02T18:05:43.814662Z",
-      "endpoint": "http://127.0.0.1:11434"
-    },
-    {
-      "id": "ollama-48264343",
-      "backend": "ollama",
-      "model": "llama3.2:3b",
-      "port": 11434,
-      "pid": null,
-      "status": "active",
-      "started_at": "2026-06-02T18:15:02.189774Z",
-      "endpoint": "http://127.0.0.1:11434"
-    },
-    {
-      "id": "ollama-f79a8578",
-      "backend": "ollama",
-      "model": "llama3.2:3b",
-      "port": 11434,
-      "pid": null,
-      "status": "active",
-      "started_at": "2026-06-02T19:25:18.819417Z",
-      "endpoint": "http://127.0.0.1:11434"
-    },
-    {
-      "id": "ollama-2d14f436",
-      "backend": "ollama",
-      "model": "llama3.2:3b",
-      "port": 11434,
-      "pid": null,
-      "status": "active",
-      "started_at": "2026-06-02T19:25:57.249204Z",
-      "endpoint": "http://127.0.0.1:11434"
-    },
-    {
-      "id": "ollama-97929450",
-      "backend": "ollama",
-      "model": "llama3.2:3b",
-      "port": 11434,
-      "pid": null,
-      "status": "active",
-      "started_at": "2026-06-02T19:26:37.462514Z",
-      "endpoint": "http://127.0.0.1:11434"
-    },
-    {
-      "id": "ollama-546cb750",
-      "backend": "ollama",
-      "model": "llama3.2:3b",
-      "port": 11434,
-      "pid": null,
-      "status": "active",
-      "started_at": "2026-06-02T20:00:56.894587Z",
+      "started_at": "2026-06-05T14:32:24.095677Z",
       "endpoint": "http://127.0.0.1:11434"
     }
   ]
