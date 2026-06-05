@@ -1,17 +1,23 @@
 {
-  "updated_at": "2026-06-02T21:29:41.035031Z",
+  "updated_at": "2026-06-04T19:22:01.584752Z",
   "models": [
+    {
+      "name": "qwen2.5:7b",
+      "model_id": "845dbda0ea48",
+      "size": "4.7 GB",
+      "modified": "23 hours ago"
+    },
     {
       "name": "qwen3-5-small:latest",
       "model_id": "766bb2d1a2d4",
       "size": "6.6 GB",
-      "modified": "3 days ago"
+      "modified": "4 days ago"
     },
     {
       "name": "gemma4-clean:latest",
       "model_id": "0fad57e74d67",
       "size": "9.6 GB",
-      "modified": "5 days ago"
+      "modified": "7 days ago"
     },
     {
       "name": "qwen3.5:latest",
