@@ -11,17 +11,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from harness.core.direct_reply import request_needs_skill_workflow, try_direct_reply
 from harness.core.thinking import ThinkingMode, local_thinking_plan, split_thinking_and_response
-
-LOOP_SYSTEM = """You are Adisn, a coding harness agent. Work like Claude Code:
-1) Think through the request in a  block before acting.
-2) Decide ONE next step as JSON on its own line: {"action":"...","input":"...","reason":"..."}
-Valid actions: respond, use_skill, note, finish
-- respond: answer the user (input = message text)
-- use_skill: apply matched skill plan (input = skill name)
-- note: store observation (input = text)
-- finish: complete with final message (input = message)
-After JSON, you may add a short user-visible message."""
-
+from harness.core.toolkit import ToolkitParadigm, get_toolkit
 
 @dataclass
 class LoopStep:
@@ -43,12 +33,14 @@ class AgentLoop:
         server_running: bool,
         max_steps: int = 6,
         step_timeout_s: float = 30.0,
+        toolkit: Optional[ToolkitParadigm] = None,
     ):
         self.thinking = thinking
         self.chat_fn = chat_fn
         self.server_running = server_running
         self.max_steps = max_steps
         self.step_timeout_s = step_timeout_s
+        self.toolkit = toolkit or get_toolkit("claude")
 
     def run(
         self,
@@ -236,10 +228,10 @@ class AgentLoop:
     ) -> Dict[str, Any]:
         if self.server_running and self.thinking.enabled:
             prompt = (
-                f"{LOOP_SYSTEM}\n\nRequest: {request}\n"
+                f"{self.toolkit.system_prompt}\n\nRequest: {request}\n"
                 f"Thinking:\n{thinking}\n"
                 f"Observations: {observations}\n"
-                "Output the JSON decision line now."
+                f"{self.toolkit.decision_prompt}"
             )
             if on_progress:
                 on_progress({"kind": "model", "active": True, "phase": "decide"})
@@ -247,7 +239,8 @@ class AgentLoop:
             if on_progress:
                 on_progress({"kind": "model", "active": False, "phase": "decide"})
             if chat.get("ok"):
-                parsed = _extract_decision(chat.get("message", "") + chat.get("raw", ""))
+                raw_text = chat.get("message", "") + chat.get("raw", "")
+                parsed = self.toolkit.extract_decision(raw_text)
                 if parsed:
                     return parsed
 

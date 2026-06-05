@@ -128,8 +128,15 @@ class ActivityRenderer:
             self._thread = None
         if self.enabled:
             self._draw_once(final=True)
-            sys.stdout.write("\033[?25h\n")
+            # Clear the live region so it doesn't stay on screen if we want to print final response
+            if self._lines_drawn:
+                sys.stdout.write(f"\033[{self._lines_drawn}A")
+                for _ in range(self._lines_drawn):
+                    sys.stdout.write("\033[2K\033[1B")
+                sys.stdout.write(f"\033[{self._lines_drawn}A")
+            sys.stdout.write("\033[?25h")
             sys.stdout.flush()
+            self._lines_drawn = 0
         self._started = False
 
     def _spin_loop(self) -> None:
@@ -156,8 +163,14 @@ class ActivityRenderer:
         if self._lines_drawn:
             sys.stdout.write(f"\033[{self._lines_drawn}A")
         for line in lines:
-            sys.stdout.write("\033[2K\r")
+            sys.stdout.write("\033[2K")
             sys.stdout.write(line + "\n")
+        # If the new draw has fewer lines than before, clear the remaining old lines
+        if len(lines) < self._lines_drawn:
+            for _ in range(self._lines_drawn - len(lines)):
+                sys.stdout.write("\033[2K\n")
+            sys.stdout.write(f"\033[{self._lines_drawn - len(lines)}A")
+
         self._lines_drawn = len(lines)
         sys.stdout.flush()
 
