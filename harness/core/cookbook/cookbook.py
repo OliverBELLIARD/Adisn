@@ -179,8 +179,17 @@ class Cookbook:
         return {"ok": True, "active_model": model}
 
     def set_toolkit(self, name: str) -> Dict[str, Any]:
-        self.toolkit_file.write_text(json.dumps({"toolkit": name}), encoding="utf-8")
-        return {"ok": True, "toolkit": name}
+        from harness.core.toolkit import TOOLKITS
+
+        key = name.lower().strip()
+        if key not in TOOLKITS:
+            return {
+                "ok": False,
+                "error": f"unknown toolkit: {name}",
+                "available": list(TOOLKITS.keys()),
+            }
+        self.toolkit_file.write_text(json.dumps({"toolkit": key}), encoding="utf-8")
+        return {"ok": True, "toolkit": key}
 
     def get_toolkit_name(self) -> str:
         if self.toolkit_file.exists():
@@ -215,10 +224,15 @@ class Cookbook:
         *,
         think: bool = True,
         on_progress: Optional[Any] = None,
+        system_extra: str = "",
     ) -> Dict[str, Any]:
         model = self.get_active_model()
         return self.questbook.chat(
-            prompt, model=model, think=think, on_progress=on_progress
+            prompt,
+            model=model,
+            think=think,
+            on_progress=on_progress,
+            system_extra=system_extra,
         )
 
     def catalog(self) -> List[Dict[str, Any]]:

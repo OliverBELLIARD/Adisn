@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Optional
 
 _REPLY_WITH = re.compile(
@@ -10,6 +11,21 @@ _REPLY_WITH = re.compile(
     re.IGNORECASE,
 )
 _WHERE_REPLY = re.compile(r"^where(?:'s| is) the reply\??$", re.IGNORECASE)
+_META_QUESTION = re.compile(
+    r"(?:how does (?:it|this|adisn|the harness|your harness) work"
+    r"|what is adisn"
+    r"|explain (?:the )?(?:harness|adisn|how (?:it|this|your harness) works)"
+    r"|how (?:do you|does adisn) work"
+    r"|tell me about (?:adisn|the harness|this harness))",
+    re.IGNORECASE,
+)
+
+_CONTEXT_FILES = (
+    "README.md",
+    "harness/core/ARCHITECTURE.md",
+    "HARNESS_SUMMARY.md",
+    "harness/README.md",
+)
 
 
 def try_direct_reply(request: str) -> Optional[str]:
@@ -34,6 +50,37 @@ def try_direct_reply(request: str) -> Optional[str]:
         )
 
     return None
+
+
+def is_meta_question(request: str) -> bool:
+    """True for questions about Adisn itself (architecture, purpose), not repo tasks."""
+    text = request.strip()
+    if not text:
+        return False
+    return bool(_META_QUESTION.search(text))
+
+
+def harness_context_blurb(workspace_root: Path, *, max_chars: int = 6000) -> str:
+    """Load concise harness docs for explaining how Adisn works."""
+    blocks: list[str] = [
+        "The user is asking how Adisn works. Explain clearly in plain language.",
+        "Adisn is a local self-evolving agent harness: skills, tools, memory, cookbook/Ollama, agent loop.",
+        "",
+    ]
+    used = 0
+    for rel in _CONTEXT_FILES:
+        path = workspace_root / rel
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8").strip()
+        if not text:
+            continue
+        chunk = f"--- {rel} ---\n{text[: max_chars - used - len(rel) - 20]}"
+        blocks.append(chunk)
+        used += len(chunk)
+        if used >= max_chars:
+            break
+    return "\n".join(blocks)
 
 
 def request_needs_skill_workflow(request: str) -> bool:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class MemoryManager:
@@ -81,3 +81,38 @@ class MemoryManager:
             return
         clipped = "\n".join(lines[-180:])
         self.now_file.write_text("# Session Buffer\n" + clipped + "\n", encoding="utf-8")
+
+    def list_interactions(self, limit: int = 30) -> List[Dict[str, Any]]:
+        """Parse conversation turns from now.md for /history."""
+        if not self.now_file.exists():
+            return []
+        entries: List[Dict[str, Any]] = []
+        current: Dict[str, Any] = {}
+        for line in self.now_file.read_text(encoding="utf-8").splitlines():
+            if line.startswith("## "):
+                if current.get("request"):
+                    entries.append(current)
+                current = {"time": line[3:].strip(), "request": "", "response_preview": ""}
+            elif line.startswith("- request: "):
+                current["request"] = line[len("- request: "):]
+            elif line.startswith("- response: "):
+                raw = line[len("- response: "):]
+                try:
+                    resp = json.loads(raw)
+                    current["response_preview"] = str(resp.get("message", ""))[:160]
+                except json.JSONDecodeError:
+                    current["response_preview"] = raw[:160]
+        if current.get("request"):
+            entries.append(current)
+        numbered = []
+        start = max(1, len(entries) - limit + 1)
+        for idx, entry in enumerate(entries[-limit:], start=start):
+            numbered.append({"id": idx, **entry})
+        return numbered
+
+    def get_interaction(self, entry_id: int) -> Optional[Dict[str, Any]]:
+        entries = self.list_interactions(limit=500)
+        for entry in entries:
+            if entry.get("id") == entry_id:
+                return entry
+        return None

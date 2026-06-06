@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "name": "then-start-by-enhancing-the-toolset-make-the-active-model-de",
+    "skill_type": "meta",
+    "description": "Then start by enhancing the toolset.",
+    "trigger_keywords": [
+      "then",
+      "start",
+      "enhancing",
+      "toolset",
+      "make",
+      "active",
+      "model",
+      "develop",
+      "tools",
+      "needed",
+      "when",
+      "available"
+    ],
+    "created_at": "2026-06-06T20:42:39.586943Z",
+    "path": "skills\\meta\\then-start-by-enhancing-the-toolset-make-the-active-model-de.md"
+  }
+]

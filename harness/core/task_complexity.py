@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from harness.core.direct_reply import request_needs_skill_workflow, try_direct_reply
+from harness.core.direct_reply import request_needs_skill_workflow, try_direct_reply, is_meta_question
 
 _COMPLEX_HINTS = (
     "refactor",
@@ -26,6 +26,10 @@ _COMPLEX_HINTS = (
     "initialize",
     "configure",
     "optimize",
+    "tool",
+    "list ",
+    "files",
+    "directory",
 )
 
 
@@ -35,6 +39,8 @@ def is_complex_task(request: str) -> bool:
     if not text:
         return False
     if try_direct_reply(text):
+        return False
+    if is_meta_question(text):
         return False
 
     low = text.lower()

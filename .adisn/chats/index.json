@@ -10,5 +10,137 @@
     "category": "interaction",
     "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
     "tokens_estimate": 687
+  },
+  {
+    "time": "2026-06-06T15:59:48.668711Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
+    "tokens_estimate": 347
+  },
+  {
+    "time": "2026-06-06T16:13:18.296930Z",
+    "category": "interaction",
+    "summary": "hello",
+    "tokens_estimate": 222
+  },
+  {
+    "time": "2026-06-06T16:13:42.697116Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
+    "tokens_estimate": 236
+  },
+  {
+    "time": "2026-06-06T16:14:23.645654Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
+    "tokens_estimate": 434
+  },
+  {
+    "time": "2026-06-06T16:26:37.462356Z",
+    "category": "interaction",
+    "summary": "/toolkit",
+    "tokens_estimate": 1502
+  },
+  {
+    "time": "2026-06-06T16:33:25.871892Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\", \"entries\": [{\"name\": \".adisn\", \"type\": \"dir\"}, {\"name\": \".claude\", \"type\": \"dir\"}, {\"n",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-06T16:33:39.886915Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
+    "tokens_estimate": 947
+  },
+  {
+    "time": "2026-06-06T16:34:01.367672Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\", \"entries\": [{\"name\": \".adisn\", \"type\": \"dir\"}, {\"name\": \".claude\", \"type\": \"dir\"}, {\"n",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-06T16:34:13.364430Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? C:/Users/olire/Documents/workspace_cli/Adisn/",
+    "tokens_estimate": 861
+  },
+  {
+    "time": "2026-06-06T16:34:25.497772Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\\\\README.md\", \"offset\": 0, \"total_lines\": 153, \"content\": \"# Adisn\\n\\nAdisn is a self-evo",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-06T16:34:58.692732Z",
+    "category": "interaction",
+    "summary": "That repository is your harness. How does it work?",
+    "tokens_estimate": 1506
+  },
+  {
+    "time": "2026-06-06T16:35:00.559568Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\", \"entries\": [{\"name\": \".adisn\", \"type\": \"dir\"}, {\"name\": \".claude\", \"type\": \"dir\"}, {\"n",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-06T16:35:27.553287Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
+    "tokens_estimate": 869
+  },
+  {
+    "time": "2026-06-06T17:25:18.841848Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\", \"entries\": [{\"name\": \".adisn\", \"type\": \"dir\"}, {\"name\": \".claude\", \"type\": \"dir\"}, {\"n",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-06T17:25:26.517335Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
+    "tokens_estimate": 835
+  },
+  {
+    "time": "2026-06-06T17:25:55.230153Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\\\\README.md\", \"offset\": 0, \"total_lines\": 153, \"content\": \"# Adisn\\n\\nAdisn is a self-evo",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-06T17:26:02.778589Z",
+    "category": "interaction",
+    "summary": "It's your harness. How does it work?",
+    "tokens_estimate": 1538
+  },
+  {
+    "time": "2026-06-06T20:11:39.694829Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\", \"entries\": [{\"name\": \".adisn\", \"type\": \"dir\"}, {\"name\": \".claude\", \"type\": \"dir\"}, {\"n",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-06T20:11:46.109905Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
+    "tokens_estimate": 817
+  },
+  {
+    "time": "2026-06-06T20:13:14.945819Z",
+    "category": "interaction",
+    "summary": "It's your harness. How does it work?",
+    "tokens_estimate": 910
+  },
+  {
+    "time": "2026-06-06T20:40:11.664033Z",
+    "category": "interaction",
+    "summary": "What would you do to improve it? Keep in mind it's designed to not be safe",
+    "tokens_estimate": 774
+  },
+  {
+    "time": "2026-06-06T20:43:35.794731Z",
+    "category": "interaction",
+    "summary": "Then start by enhancing the toolset. Make the active model develop tools if needed when a skill or the available tools wouldn't be enough to satisfy the user in",
+    "tokens_estimate": 2461
   }
 ]

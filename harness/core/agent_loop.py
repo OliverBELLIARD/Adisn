@@ -7,9 +7,12 @@ import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from harness.core.direct_reply import request_needs_skill_workflow, try_direct_reply
+from harness.core.tool_intent import is_refusal_message, tool_call_json
+from harness.core.capability_index import suggest_tool_call
 from harness.core.thinking import ThinkingMode, local_thinking_plan, split_thinking_and_response
 from harness.core.toolkit import ToolkitParadigm, get_toolkit
 
@@ -20,6 +23,31 @@ class LoopStep:
     decision: Dict[str, Any] = field(default_factory=dict)
     observation: str = ""
     duration_ms: int = 0
+
+
+def _serialize_tool_observation(result: Dict[str, Any], *, max_content: int = 3000) -> str:
+    """JSON observation safe for parsing in finish heuristics (truncate inside fields)."""
+    payload = dict(result)
+    content = payload.get("content")
+    if isinstance(content, str) and len(content) > max_content:
+        payload["content"] = content[:max_content] + "\n… (truncated)"
+    stdout = payload.get("stdout")
+    if isinstance(stdout, str) and len(stdout) > max_content:
+        payload["stdout"] = stdout[:max_content] + "\n… (truncated)"
+    return json.dumps(payload, ensure_ascii=True)
+
+
+def _parse_observation(raw: str) -> Optional[Dict[str, Any]]:
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if isinstance(data, dict):
+        inner = data.get("result")
+        if isinstance(inner, dict):
+            return inner
+        return data
+    return None
 
 
 class AgentLoop:
@@ -49,9 +77,12 @@ class AgentLoop:
         skill_context: Dict[str, Any],
         local_act_fn: Callable[[str, Dict[str, Any]], Dict[str, Any]],
         on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
+        tools_prompt: str = "",
+        initial_observations: Optional[List[str]] = None,
+        workspace_root: Optional[Path] = None,
     ) -> Dict[str, Any]:
         steps: List[LoopStep] = []
-        observations: List[str] = []
+        observations: List[str] = list(initial_observations or [])
         all_thinking: List[str] = []
         final_message = ""
         started = time.perf_counter()
@@ -109,11 +140,28 @@ class AgentLoop:
                 observations,
                 step.thinking,
                 on_progress=on_progress,
+                tools_prompt=tools_prompt,
+                workspace_root=workspace_root,
             )
             step.decision = decision
 
             action = decision.get("action", "respond")
             action_input = decision.get("input", "")
+            if isinstance(action_input, dict):
+                action_input = tool_call_json(action_input) if action == "run_tool" else json.dumps(
+                    action_input, ensure_ascii=True
+                )
+
+            if action == "respond" and is_refusal_message(str(action_input)) and not _tools_were_used(observations):
+                suggested = suggest_tool_call(workspace_root, request) if workspace_root else None
+                payload = suggested or {"tool": "list_tools", "args": {}}
+                action = "run_tool"
+                action_input = tool_call_json(payload)
+                step.decision = {
+                    "action": action,
+                    "input": action_input,
+                    "reason": "refusal blocked — forcing tool attempt",
+                }
 
             step.phase = "act"
             emit(
@@ -125,27 +173,32 @@ class AgentLoop:
             if action == "finish":
                 final_message = action_input or decision.get("reason", "")
                 step.observation = "finished"
-                step.duration_ms = int((time.perf_counter() - t0) * 1000)
-                steps.append(step)
-                break
-            if action == "respond":
-                # In Claude Code style, respond is often a mid-loop interaction.
-                # Only terminate if we're not in a complex multi-step workflow
-                # or if the model explicitly wants to finish.
+            elif action == "respond":
                 final_message = action_input or self._fallback_response(request, skill_context)
                 step.observation = f"responded: {final_message[:50]}"
-                # If we've reached max steps or it's a simple request, we might stop.
-                # But for a true harness loop, we usually want to wait for 'finish'.
-                # Heuristic: if we have a skill, we keep going unless 'finish'.
-                step.duration_ms = int((time.perf_counter() - t0) * 1000)
-                steps.append(step)
-                if not skill_context.get("skill_name"):
-                    break
-            if action == "use_skill":
-                result = local_act_fn("use_skill", {"skill": action_input, **skill_context})
-                obs = json.dumps(result, ensure_ascii=True)[:500]
+                if is_refusal_message(final_message) and not _tools_were_used(observations):
+                    suggested = suggest_tool_call(workspace_root, request) if workspace_root else None
+                    payload = suggested or {"tool": "list_tools", "args": {}}
+                    result = local_act_fn(
+                        "run_tool",
+                        {"input": tool_call_json(payload), **skill_context},
+                    )
+                    obs = _serialize_tool_observation(result if isinstance(result, dict) else {"result": result})
+                    observations.append(obs)
+                    step.observation = f"refusal→tool: {obs[:200]}"
+                    step.duration_ms = int((time.perf_counter() - t0) * 1000)
+                    steps.append(step)
+                    continue
+            elif action == "run_tool":
+                result = local_act_fn("run_tool", {"input": action_input, **skill_context})
+                obs = _serialize_tool_observation(result if isinstance(result, dict) else {"result": result})
                 observations.append(obs)
-                step.observation = obs
+                step.observation = obs[:400]
+            elif action == "use_skill":
+                result = local_act_fn("use_skill", {"skill": action_input, **skill_context})
+                obs = _serialize_tool_observation(result if isinstance(result, dict) else {"result": result})
+                observations.append(obs)
+                step.observation = obs[:400]
                 if result.get("message"):
                     final_message = result["message"]
             elif action == "note":
@@ -157,6 +210,11 @@ class AgentLoop:
 
             step.duration_ms = int((time.perf_counter() - t0) * 1000)
             steps.append(step)
+
+            if action == "finish":
+                break
+            if action == "respond" and not skill_context.get("skill_name"):
+                break
 
         if not final_message:
             final_message = self._fallback_response(request, skill_context)
@@ -225,10 +283,13 @@ class AgentLoop:
         thinking: str,
         *,
         on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
+        tools_prompt: str = "",
+        workspace_root: Optional[Path] = None,
     ) -> Dict[str, Any]:
         if self.server_running and self.thinking.enabled:
+            tool_block = f"\n{tools_prompt}\n" if tools_prompt else ""
             prompt = (
-                f"{self.toolkit.system_prompt}\n\nRequest: {request}\n"
+                f"{self.toolkit.system_prompt}\n{tool_block}\nRequest: {request}\n"
                 f"Thinking:\n{thinking}\n"
                 f"Observations: {observations}\n"
                 f"{self.toolkit.decision_prompt}"
@@ -244,7 +305,9 @@ class AgentLoop:
                 if parsed:
                     return parsed
 
-        return _heuristic_decision(request, skill_context, observations)
+        return _heuristic_decision(
+            request, skill_context, observations, workspace_root=workspace_root
+        )
 
     @staticmethod
     def _fallback_response(request: str, skill_context: Dict[str, Any]) -> str:
@@ -285,13 +348,66 @@ def _extract_decision(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _tools_were_used(observations: List[str]) -> bool:
+    for obs in observations:
+        if '"bootstrap": "available_tools"' in obs:
+            continue
+        low = obs.lower()
+        if any(
+            marker in low
+            for marker in (
+                '"bootstrap": "preflight_tool"',
+                '"entries"',
+                '"content"',
+                "read_file",
+                "write_file",
+                '"stdout"',
+            )
+        ):
+            return True
+    return False
+
+
 def _heuristic_decision(
-    request: str, skill_context: Dict[str, Any], observations: List[str]
+    request: str,
+    skill_context: Dict[str, Any],
+    observations: List[str],
+    *,
+    workspace_root: Optional[Path] = None,
 ) -> Dict[str, Any]:
     direct = try_direct_reply(request)
     if direct:
         action = "finish" if observations else "respond"
         return {"action": action, "input": direct, "reason": "direct reply"}
+
+    if observations and _tools_were_used(observations):
+        return {
+            "action": "finish",
+            "input": _heuristic_finish_message(request, skill_context, observations),
+            "reason": "tool observations collected",
+        }
+
+    if skill_context.get("skill_name") and request_needs_skill_workflow(request):
+        return {
+            "action": "use_skill",
+            "input": skill_context["skill_name"],
+            "reason": "matched skill",
+        }
+
+    inferred = suggest_tool_call(workspace_root, request) if workspace_root else None
+    if inferred and not _tools_were_used(observations):
+        return {
+            "action": "run_tool",
+            "input": tool_call_json(inferred),
+            "reason": "best match from tools/INDEX.json",
+        }
+
+    if not _tools_were_used(observations):
+        return {
+            "action": "run_tool",
+            "input": tool_call_json({"tool": "list_tools", "args": {}}),
+            "reason": "inspect tools/INDEX.json",
+        }
 
     if observations:
         return {
@@ -299,16 +415,11 @@ def _heuristic_decision(
             "input": _heuristic_finish_message(request, skill_context, observations),
             "reason": "observations collected",
         }
-    if skill_context.get("skill_name") and request_needs_skill_workflow(request):
-        return {
-            "action": "use_skill",
-            "input": skill_context["skill_name"],
-            "reason": "matched skill",
-        }
+
     return {
-        "action": "respond",
-        "input": direct or _conversational_response(request, skill_context),
-        "reason": "direct response",
+        "action": "run_tool",
+        "input": tool_call_json({"tool": "list_tools", "args": {}}),
+        "reason": "must use tools before responding",
     }
 
 
@@ -324,8 +435,28 @@ def _heuristic_finish_message(
     direct = try_direct_reply(request)
     if direct:
         return direct
+
+    for raw in reversed(observations):
+        result = _parse_observation(raw)
+        if not result:
+            continue
+        if result.get("entries"):
+            lines = [f"- {e.get('name')} ({e.get('type')})" for e in result["entries"][:40]]
+            return "Directory listing:\n" + "\n".join(lines)
+        if result.get("content"):
+            path = result.get("path", "file")
+            body = str(result["content"]).strip()
+            if len(body) > 4000:
+                body = body[:3997] + "…"
+            return f"Contents of {path}:\n{body}"
+        if result.get("stdout") is not None:
+            return f"$ command output\n{str(result.get('stdout', ''))[:4000]}"
+        if result.get("message"):
+            return str(result["message"])
+
     skill = skill_context.get("skill_name") or "generated"
     return (
-        f"Done working on: {request[:100]}\n"
-        f"(skill `{skill}`, {len(observations)} observation(s))"
+        f"Finished: {request[:100]}\n"
+        f"(matched skill `{skill}`, {len(observations)} tool step(s)). "
+        "Ask a follow-up for details."
     )

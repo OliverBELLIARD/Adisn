@@ -43,6 +43,28 @@ class ContextWindowManager:
     def snapshot(self) -> List[ContextChunk]:
         return list(self._chunks)
 
+    def clear(self) -> None:
+        self._chunks = []
+
+    def count(self) -> int:
+        return len(self._chunks)
+
+    def format_for_prompt(self, max_chars: int = 6000) -> str:
+        if not self._chunks:
+            return ""
+        lines: List[str] = []
+        used = 0
+        for chunk in self._chunks[-24:]:
+            snippet = chunk.content
+            if len(snippet) > 800:
+                snippet = snippet[:800] + "…"
+            line = f"{chunk.role}: {snippet}"
+            if used + len(line) > max_chars:
+                break
+            lines.append(line)
+            used += len(line)
+        return "\n".join(lines)
+
     def _compress_if_needed(self) -> None:
         total = self._total_tokens()
         if total <= self.compact_threshold_tokens:

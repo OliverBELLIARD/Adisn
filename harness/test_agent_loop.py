@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import unittest
 
-from harness.core.agent_loop import AgentLoop, _extract_decision, _heuristic_decision
+from harness.core.agent_loop import (
+    AgentLoop,
+    _extract_decision,
+    _heuristic_decision,
+    _heuristic_finish_message,
+    _serialize_tool_observation,
+)
 from harness.core.thinking import ThinkingMode
 
 
@@ -21,6 +27,21 @@ class TestAgentLoop(unittest.TestCase):
             [],
         )
         self.assertEqual("use_skill", d["action"])
+
+    def test_heuristic_finish_reads_file_content(self) -> None:
+        big = "x" * 5000
+        obs = _serialize_tool_observation(
+            {"ok": True, "path": "README.md", "content": big},
+            max_content=3000,
+        )
+        msg = _heuristic_finish_message(
+            "show readme",
+            {"skill_name": None},
+            [obs],
+        )
+        self.assertIn("Contents of README.md:", msg)
+        self.assertNotIn('"ok": true', msg)
+        self.assertLess(len(msg), 5000)
 
     def test_loop_completes_offline_fast(self) -> None:
         loop = AgentLoop(

@@ -160,6 +160,7 @@ class Questbook:
         timeout: Optional[float] = None,
         on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
         _allow_model_retry: bool = True,
+        system_extra: str = "",
     ) -> Dict:
         """Call Ollama /api/chat. Never auto-starts the server."""
         if not self._is_server_healthy():
@@ -171,6 +172,8 @@ class Questbook:
         timeout = timeout if timeout is not None else self.DEFAULT_CHAT_TIMEOUT
         native_think = think and model_supports_native_thinking(chosen)
         system = "You are Adisn, a local coding harness assistant."
+        if system_extra:
+            system += "\n\n" + system_extra.strip()
         if think and not native_think:
             tag = "think"
             system += (
@@ -227,6 +230,7 @@ class Questbook:
                         timeout=timeout,
                         on_progress=on_progress,
                         _allow_model_retry=False,
+                        system_extra=system_extra,
                     )
             return {"ok": False, "error": f"http_{exc.code}", "details": detail[:500]}
         except (urllib.error.URLError, TimeoutError) as exc:

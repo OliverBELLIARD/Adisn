@@ -1,0 +1,134 @@
+[
+  {
+    "name": "create_skill",
+    "summary": "Create a skill markdown entry in skills/INDEX.json",
+    "args": {
+      "task": "str",
+      "content": "str?"
+    },
+    "keywords": [
+      "skill",
+      "workflow",
+      "procedure",
+      "playbook"
+    ],
+    "builtin": true
+  },
+  {
+    "name": "create_tool",
+    "summary": "Register a new Python tool in tools/INDEX.json",
+    "args": {
+      "name": "str",
+      "description": "str",
+      "code": "str"
+    },
+    "keywords": [
+      "tool",
+      "register",
+      "extend",
+      "custom",
+      "capability"
+    ],
+    "builtin": true
+  },
+  {
+    "name": "grep",
+    "summary": "Search file contents by regex pattern",
+    "args": {
+      "pattern": "str",
+      "path": "str?"
+    },
+    "keywords": [
+      "grep",
+      "search",
+      "find",
+      "pattern",
+      "match"
+    ],
+    "builtin": true
+  },
+  {
+    "name": "list_dir",
+    "summary": "List files and folders under a directory",
+    "args": {
+      "path": "str?"
+    },
+    "keywords": [
+      "list",
+      "dir",
+      "directory",
+      "files",
+      "folder",
+      "ls",
+      "contents"
+    ],
+    "builtin": true
+  },
+  {
+    "name": "read_file",
+    "summary": "Read text from a file in the workspace",
+    "args": {
+      "path": "str",
+      "offset": "int?",
+      "limit": "int?"
+    },
+    "keywords": [
+      "read",
+      "file",
+      "open",
+      "view",
+      "source",
+      "cat"
+    ],
+    "builtin": true
+  },
+  {
+    "name": "read_skill",
+    "summary": "Load a skill body from skills/ by name",
+    "args": {
+      "name": "str"
+    },
+    "keywords": [
+      "skill",
+      "read",
+      "load",
+      "procedure"
+    ],
+    "builtin": true
+  },
+  {
+    "name": "shell",
+    "summary": "Run a shell command in the workspace",
+    "args": {
+      "command": "str"
+    },
+    "keywords": [
+      "shell",
+      "run",
+      "execute",
+      "command",
+      "terminal",
+      "script"
+    ],
+    "builtin": true
+  },
+  {
+    "name": "write_file",
+    "summary": "Create or overwrite a file, including harness source code",
+    "args": {
+      "path": "str",
+      "content": "str",
+      "reason": "str?"
+    },
+    "keywords": [
+      "write",
+      "edit",
+      "modify",
+      "rewrite",
+      "create",
+      "patch",
+      "code"
+    ],
+    "builtin": true
+  }
+]

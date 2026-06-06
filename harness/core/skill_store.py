@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from harness.core.task_complexity import is_complex_task, should_create_skill
+from harness.core.capability_index import format_skills_catalog
 
 
 @dataclass
@@ -45,6 +46,10 @@ class SkillStore:
         self.skills_root.mkdir(exist_ok=True)
         for item in self.DEFAULT_TYPES:
             self._ensure_type_folder(item)
+
+    def catalog_prompt(self, request: str, *, limit: int = 8) -> str:
+        self._update_global_index()
+        return format_skills_catalog(self.skills_root / "INDEX.json", request, limit=limit)
 
     def generate_from_task(self, task: str) -> SkillDescriptor:
         if not should_create_skill(task):

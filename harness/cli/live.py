@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import threading
 import time
@@ -67,8 +68,22 @@ class LiveState:
     model_label: str = ""
     thinking_lines: List[str] = field(default_factory=list)
     response_preview: str = ""
+    activity_detail: str = ""
     done: bool = False
     ok: bool = True
+
+
+def _terminal_width() -> int:
+    try:
+        import shutil
+
+        return shutil.get_terminal_size(fallback=(100, 24)).columns
+    except OSError:
+        return 100
+
+
+def _strip_ansi(text: str) -> str:
+    return re.sub(r"\033[^m]*m", "", text)
 
 
 class ActivityRenderer:
@@ -136,14 +151,23 @@ class ActivityRenderer:
         if not lines and text.strip():
             lines = [text.strip()[:200]]
         with self._lock:
-            self._state.thinking_lines = lines[-8:]
+            self._state.thinking_lines = lines[-3:]
+            if lines:
+                self._state.activity_detail = lines[-1][:96]
 
     def set_response_preview(self, text: str) -> None:
-        preview = text.strip()
+        preview = text.strip().replace("\n", " ")
         if len(preview) > 120:
             preview = preview[:117] + "…"
         with self._lock:
             self._state.response_preview = preview
+
+    def set_activity_detail(self, text: str) -> None:
+        detail = text.strip().replace("\n", " ")
+        if len(detail) > 96:
+            detail = detail[:93] + "…"
+        with self._lock:
+            self._state.activity_detail = detail
 
     def finish(self, *, ok: bool = True) -> None:
         if not self._started:
@@ -156,7 +180,6 @@ class ActivityRenderer:
             self._thread.join(timeout=1.0)
             self._thread = None
         if self.enabled:
-            self._draw_once(final=True)
             self._clear_live_region()
             sys.stdout.write("\033[?25h")
             sys.stdout.flush()
@@ -189,34 +212,30 @@ class ActivityRenderer:
                 model_label=self._state.model_label,
                 thinking_lines=list(self._state.thinking_lines),
                 response_preview=self._state.response_preview,
+                activity_detail=self._state.activity_detail,
                 done=final or self._state.done,
                 ok=self._state.ok,
             )
-        lines = self._build_lines(state)
-        if not self.enabled:
-            return
-        if len(lines) == 1:
-            self._single_line = True
-            sys.stdout.write(f"\r\033[2K{lines[0]}")
-            self._lines_drawn = 0 if final else 1
-        else:
-            if self._single_line and self._lines_drawn:
-                sys.stdout.write("\r\033[2K")
-                self._lines_drawn = 0
-            self._single_line = False
-            if self._lines_drawn:
-                sys.stdout.write(f"\033[{self._lines_drawn}A")
-            for index, line in enumerate(lines):
-                sys.stdout.write("\033[2K")
-                sys.stdout.write(line)
-                if index < len(lines) - 1:
-                    sys.stdout.write("\n")
-            if len(lines) < self._lines_drawn:
-                for _ in range(self._lines_drawn - len(lines)):
-                    sys.stdout.write("\033[2K\n")
-                sys.stdout.write(f"\033[{self._lines_drawn - len(lines)}A")
-            self._lines_drawn = len(lines)
-        sys.stdout.flush()
+            lines = self._build_lines(state)
+            if not self.enabled:
+                return
+            width = _terminal_width()
+            if not state.done:
+                line = lines[0] if lines else ""
+                visible = len(_strip_ansi(line))
+                pad = max(0, width - visible - 1)
+                self._single_line = True
+                sys.stdout.write(f"\r\033[2K{line}{' ' * pad}")
+                self._lines_drawn = 0 if final else 1
+            else:
+                if self._lines_drawn:
+                    sys.stdout.write(f"\033[{self._lines_drawn}A")
+                for line in lines:
+                    sys.stdout.write("\033[2K")
+                    sys.stdout.write(line + "\n")
+                self._single_line = False
+                self._lines_drawn = len(lines)
+            sys.stdout.flush()
 
     def _build_lines(self, state: LiveState) -> List[str]:
         dim = "\033[2m" if self.enabled else ""
@@ -233,6 +252,19 @@ class ActivityRenderer:
             g = frames[self._frame_idx % len(frames)]
             glyph = f"{accent}{g}{reset}"
 
+        if not state.done:
+            parts: List[str] = []
+            if state.step_label:
+                parts.append(state.step_label.strip())
+            if state.model_label:
+                parts.append(state.model_label.replace("Model · ", "Model: "))
+            if state.activity_detail:
+                parts.append(state.activity_detail)
+            line = f"{glyph} {state.headline}"
+            if parts:
+                line += f" {dim}· " + " · ".join(parts) + reset
+            return [line]
+
         lines: List[str] = [f"{glyph} {state.headline}"]
         if state.step_label:
             lines.append(f"{dim}  {state.step_label}{reset}")
@@ -241,16 +273,19 @@ class ActivityRenderer:
         if state.thinking_lines:
             body, truncated = format_thinking_for_display(
                 "\n".join(state.thinking_lines),
-                max_collapsed_lines=4,
+                max_collapsed_lines=3,
             )
             if body:
                 lines.append(f"{dim}  Thinking{reset}")
-                for part in body.splitlines():
+                for part in body.splitlines()[:3]:
                     lines.append(f"{dim}{part}{reset}")
                 if truncated:
                     lines.append(f"{dim}  … (more in final output){reset}")
-        if state.response_preview:
-            lines.append(f"{dim}  └ {state.response_preview}{reset}")
+        if state.response_preview and state.done:
+            preview = state.response_preview
+            if len(preview) > 120:
+                preview = preview[:117] + "…"
+            lines.append(f"{dim}  └ {preview}{reset}")
         return lines
 
 

@@ -26,6 +26,7 @@ from harness.cli.display import (
 )
 from harness.cli.live import ActivityRenderer, enable_vt_processing
 from harness.cli.progress import progress_handler_for_live
+from harness.core.toolkit import format_toolkits_display
 
 
 def _ensure_utf8_stdout() -> None:
@@ -295,6 +296,13 @@ def execute_tool_action(agent, action: str, value: str, payload: dict | None = N
         return agent.process_request(value)
     if action == "memory":
         return agent.memory.get_distribution()
+    if action == "history":
+        limit = int(payload.get("limit", 20))
+        return agent.list_history(limit=limit)
+    if action == "history_load":
+        if not value:
+            return {"error": "missing history id in --tool-input"}
+        return agent.load_history_prompt(int(value))
     if action == "toolkit":
         if not value:
             return {"error": "missing toolkit name"}
@@ -385,7 +393,11 @@ def _handle_user_prompt(agent, line: str) -> None:
 
     try:
         result = agent.process_request(line, on_progress=on_progress)
-    finally:
+    except Exception as exc:
+        live.finish(ok=False)
+        print(f"Error: {exc}", file=sys.stderr)
+        raise
+    else:
         live.finish(ok=True)
 
     result["thinking_expanded"] = agent.thinking_expanded
@@ -447,6 +459,42 @@ def run_interactive(args: argparse.Namespace):
                 pct = (tokens / dist['total_tokens_estimate'] * 100) if dist['total_tokens_estimate'] > 0 else 0
                 print(f"  {cat:15} : {tokens:5} tokens ({pct:5.1f}%)")
             continue
+        if line == "/history" or line.startswith("/history "):
+            args = line[len("/history"):].strip()
+            if not args:
+                result = agent.list_history()
+                print("\nPrompt history (use `/history load <id>` to re-run):")
+                for entry in result.get("entries", []):
+                    preview = entry.get("request", "")[:80]
+                    print(f"  [{entry.get('id')}] {entry.get('time', '')} — {preview}")
+                continue
+            if args.startswith("load "):
+                try:
+                    entry_id = int(args.split()[1])
+                except (IndexError, ValueError):
+                    print("usage: /history load <id>")
+                    continue
+                loaded = agent.load_history_prompt(entry_id)
+                if not loaded.get("ok"):
+                    print(json.dumps(loaded, indent=2))
+                    continue
+                prompt = loaded.get("request", "")
+                print(f"\nRe-running prompt #{entry_id}: {prompt[:120]}")
+                _handle_user_prompt(agent, prompt)
+                continue
+            try:
+                entry_id = int(args.split()[0])
+            except ValueError:
+                print("usage: /history | /history <id> | /history load <id>")
+                continue
+            loaded = agent.load_history_prompt(entry_id)
+            if loaded.get("ok"):
+                print(f"\n[{loaded['id']}] {loaded.get('time')}")
+                print(f"Request: {loaded.get('request')}")
+                print(f"Response: {loaded.get('response_preview')}")
+            else:
+                print(json.dumps(loaded, indent=2))
+            continue
         if line.startswith("/scope "):
             _, scope = line.split(" ", 1)
             print(json.dumps(agent.set_scope(scope.strip()), indent=2))
@@ -493,9 +541,16 @@ def run_interactive(args: argparse.Namespace):
             _, _, profile = line.partition("/ollama ensure-profile ")
             print(json.dumps(agent.ollama_ensure_profile(profile.strip()), indent=2))
             continue
-        if line.startswith("/toolkit "):
-            _, name = line.split(" ", 1)
-            print(json.dumps(agent.cookbook.set_toolkit(name.strip()), indent=2))
+        if line == "/toolkit" or line.startswith("/toolkit "):
+            args = line[len("/toolkit"):].strip()
+            if not args:
+                print(format_toolkits_display(agent.cookbook.get_toolkit_name()))
+            else:
+                result = agent.cookbook.set_toolkit(args)
+                if result.get("ok"):
+                    print(format_toolkits_display(result["toolkit"]))
+                else:
+                    print(json.dumps(result, indent=2))
             continue
         if line == "/resume":
             chats = agent.list_chats()
@@ -691,6 +746,13 @@ def _slash_command_specs() -> list[SlashCommandSpec]:
         ),
         SlashCommandSpec("/status", "System", "Show Adisn runtime status", "/status", "/status"),
         SlashCommandSpec("/memory", "System", "Show memory usage distribution", "/memory", "/memory"),
+        SlashCommandSpec(
+            "/history",
+            "System",
+            "List, inspect, or re-run previous prompts",
+            "/history [id|load <id>]",
+            "/history load 3",
+        ),
         SlashCommandSpec("/scope", "System", "Switch rewrite scope mode", "/scope <global|workspace>", "/scope workspace"),
         SlashCommandSpec("/quit", "System", "Exit interactive mode", "/quit", "/quit"),
         SlashCommandSpec(
@@ -723,9 +785,9 @@ def _slash_command_specs() -> list[SlashCommandSpec]:
         SlashCommandSpec(
             "/toolkit",
             "System",
-            "Select tool-calling paradigm (claude|deepseek|qwen|gemma)",
-            "/toolkit <paradigm>",
-            "/toolkit deepseek",
+            "Show or select tool-calling paradigm (claude|deepseek|qwen|gemma)",
+            "/toolkit [paradigm]",
+            "/toolkit",
         ),
         SlashCommandSpec(
             "/resume",

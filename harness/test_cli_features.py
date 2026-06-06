@@ -13,6 +13,7 @@ from harness.cli.cookbook_commands import format_cookbook_result
 from harness.cli.display import OLLAMA_WARNING, print_agent_response
 from harness.cli.main import _escape_html, _handle_user_prompt, _slash_command_specs
 from harness.core.agent import HarnessAgent
+from harness.core.toolkit import format_toolkits_display, list_toolkit_names
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -80,6 +81,47 @@ class TestCliFeatures(unittest.TestCase):
         out = buf.getvalue()
         self.assertIn("hello", out)
         self.assertIn("step", out)
+
+    def test_toolkit_display_lists_paradigms(self) -> None:
+        text = format_toolkits_display("qwen")
+        self.assertIn("qwen (active)", text)
+        self.assertIn("claude", text)
+        self.assertIn("deepseek", text)
+        self.assertIn("gemma", text)
+        for name in list_toolkit_names():
+            self.assertIn(name, text)
+
+    def test_toolkit_set_validates_and_persists(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            agent = HarnessAgent(workspace_root=Path(tmp))
+            bad = agent.cookbook.set_toolkit("not-a-paradigm")
+            self.assertFalse(bad.get("ok"))
+            self.assertIn("available", bad)
+            good = agent.cookbook.set_toolkit("deepseek")
+            self.assertTrue(good.get("ok"))
+            self.assertEqual("deepseek", agent.cookbook.get_toolkit_name())
+
+    def test_cli_toolkit_command_no_model(self) -> None:
+        import os
+
+        env = {**os.environ, "OLLAMA_HOST": "127.0.0.1:19999", "ADISN_NO_BANNER": "1"}
+        proc = subprocess.run(
+            [sys.executable, "-m", "adisn"],
+            input="/toolkit\n/quit\n",
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=60,
+            env=env,
+        )
+        self.assertEqual(0, proc.returncode)
+        combined = proc.stdout + proc.stderr
+        self.assertIn("Tool-calling paradigms", combined)
+        self.assertIn("claude", combined)
+        self.assertIn("deepseek", combined)
+        self.assertNotIn("Running agent loop", combined)
 
     def test_startup_shows_ollama_warning(self) -> None:
         import os

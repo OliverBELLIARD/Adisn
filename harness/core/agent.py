@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from harness.core.agent_loop import AgentLoop
 from harness.core.context_window import ContextWindowManager
@@ -15,9 +15,13 @@ from harness.core.messages import OLLAMA_WARNING
 from harness.core.questbook import Questbook
 from harness.core.self_rewriter import SelfRewriter
 from harness.core.skill_store import SkillStore
-from harness.core.direct_reply import try_direct_reply
+from harness.core.direct_reply import try_direct_reply, is_meta_question, harness_context_blurb
 from harness.core.task_complexity import is_complex_task, should_create_skill
+from harness.core.capability_index import build_capability_catalog
+from harness.core.tool_intent import is_refusal_message, needs_tools, tool_call_json
 from harness.core.thinking import ThinkingMode, local_thinking_plan
+from harness.core.agent_mandate import ADISN_TOOL_MANDATE
+from harness.core.tool_executor import ToolExecutor
 from harness.core.toolkit import get_toolkit
 from harness.memory.memory_manager import MemoryManager
 
@@ -62,6 +66,7 @@ class HarnessAgent:
         self.cookbook = Cookbook(self.workspace_root, self.questbook)
         self.thinking = ThinkingMode(enabled=True)
         self.thinking_expanded = False
+        self.tools = ToolExecutor(self.workspace_root, self.rewriter, self.skills)
 
     def is_ollama_server_running(self) -> bool:
         return bool(self.questbook.server_status()["server_running"])
@@ -99,7 +104,54 @@ class HarnessAgent:
                 loop_result={"steps": [], "loop_steps": 0, "ollama_used": False},
             )
 
-        if not is_complex_task(request):
+        if is_meta_question(request):
+            emit("headline", text="Explaining…")
+            context = harness_context_blurb(self.workspace_root)
+            turn = self._conversational_turn(
+                request,
+                use_thinking=use_thinking,
+                on_progress=on_progress,
+                system_extra=f"{ADISN_TOOL_MANDATE}\n\n{context}",
+            )
+            pseudo_steps = []
+            if turn.get("thinking"):
+                pseudo_steps.append(
+                    {
+                        "phase": "think",
+                        "thinking": turn["thinking"],
+                        "decision": {"action": "respond", "input": turn["message"]},
+                        "observation": "meta explain",
+                        "duration_ms": 0,
+                    }
+                )
+            loop_result = {
+                **turn,
+                "steps": pseudo_steps,
+                "loop_steps": len(pseudo_steps),
+            }
+            if on_progress:
+                on_progress({"kind": "loop_start", "max_steps": 1, "request": request[:120]})
+                on_progress(
+                    {
+                        "kind": "loop_done",
+                        "steps": len(pseudo_steps),
+                        "message_preview": turn["message"][:80],
+                    }
+                )
+            return self._finalize_request(
+                request,
+                message=turn["message"],
+                thinking=turn.get("thinking", ""),
+                use_thinking=use_thinking,
+                warning=warning,
+                server_running=server_running,
+                matched=None,
+                created=False,
+                predicted=self._predict_action(request),
+                loop_result=loop_result,
+            )
+
+        if not is_complex_task(request) and not needs_tools(request):
             emit("headline", text="Replying…")
             turn = self._conversational_turn(
                 request, use_thinking=use_thinking, on_progress=on_progress
@@ -157,6 +209,12 @@ class HarnessAgent:
 
         emit("headline", text="Running agent loop…")
 
+        capability_catalog = build_capability_catalog(self.workspace_root, request)
+        system_extra = (
+            f"{ADISN_TOOL_MANDATE}\n\nWorkspace: {self.workspace_root}\n\n"
+            f"{capability_catalog}"
+        )
+
         def chat_fn(
             prompt: str,
             think: bool = True,
@@ -170,10 +228,16 @@ class HarnessAgent:
                 if on_progress:
                     on_progress(event)
 
+            history = self.context.format_for_prompt()
+            full_prompt = prompt
+            if history:
+                full_prompt = f"Conversation history:\n{history}\n\n---\n\n{prompt}"
+
             result = self.cookbook.chat(
-                prompt,
+                full_prompt,
                 think=think and use_thinking,
                 on_progress=relay if on_progress else None,
+                system_extra=system_extra,
             )
             if on_progress:
                 on_progress({"kind": "model", "active": False, "model": model})
@@ -187,21 +251,40 @@ class HarnessAgent:
         )
 
         def local_act(action: str, ctx: Dict) -> Dict:
+            if action == "run_tool":
+                result = self.tools.execute(ctx.get("input"))
+                if result.get("ok"):
+                    self.memory.append_note("tool", json.dumps(result, ensure_ascii=True)[:500])
+                return result
             if action == "use_skill":
+                skill_name = str(ctx.get("skill") or ctx.get("skill_name") or "")
+                skill_path = ctx.get("skill_path")
+                skill_body = ""
+                if skill_path:
+                    path = self.workspace_root / skill_path
+                    if path.exists():
+                        skill_body = path.read_text(encoding="utf-8")[:4000]
                 return {
                     "ok": True,
                     "message": (
-                        f"Applied skill `{ctx.get('skill')}` for: {request[:100]}\n"
-                        f"Workflow: {ctx.get('next_action')}."
+                        f"Loaded skill `{skill_name}`.\n"
+                        f"{skill_body[:1200] if skill_body else 'No skill body on disk.'}\n"
+                        f"Use run_tool to read/write files and evolve the harness."
                     ),
+                    "skill": skill_name,
                 }
             return {"ok": False, "error": f"unknown local action {action}"}
+
+        initial_observations: List[str] = []
 
         loop_result = loop.run(
             request,
             skill_context=skill_context,
             local_act_fn=local_act,
             on_progress=on_progress,
+            tools_prompt=capability_catalog,
+            initial_observations=initial_observations,
+            workspace_root=self.workspace_root,
         )
 
         return self._finalize_request(
@@ -223,12 +306,20 @@ class HarnessAgent:
         *,
         use_thinking: bool,
         on_progress: Optional[Callable[[Dict[str, Any]], None]],
+        system_extra: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Single model call for simple prompts (no skill file, no multi-step loop)."""
         server_running = self.is_ollama_server_running()
         if server_running:
+            history = self.context.format_for_prompt()
+            prompt = request
+            if history:
+                prompt = f"Conversation history:\n{history}\n\n---\n\n{request}"
             chat = self.cookbook.chat(
-                request, think=use_thinking, on_progress=on_progress
+                prompt,
+                think=use_thinking,
+                on_progress=on_progress,
+                system_extra=system_extra or ADISN_TOOL_MANDATE,
             )
             if chat.get("ok"):
                 return {
@@ -429,6 +520,22 @@ class HarnessAgent:
         self.memory.append_note("ollama-profile", f"{profile}: {result.get('ok')}")
         return result
 
+    def list_history(self, limit: int = 20) -> Dict:
+        entries = self.memory.list_interactions(limit=limit)
+        return {"ok": True, "entries": entries, "count": len(entries)}
+
+    def load_history_prompt(self, entry_id: int) -> Dict:
+        entry = self.memory.get_interaction(entry_id)
+        if not entry:
+            return {"ok": False, "error": f"history entry #{entry_id} not found"}
+        return {
+            "ok": True,
+            "id": entry_id,
+            "time": entry.get("time"),
+            "request": entry.get("request", ""),
+            "response_preview": entry.get("response_preview", ""),
+        }
+
     def list_chats(self) -> Dict:
         chats = []
         # In a real impl, we might want to scan the chats dir for .md files
@@ -447,20 +554,13 @@ class HarnessAgent:
             return {"ok": False, "error": f"Chat {chat_name} not found"}
 
         content = path.read_text(encoding="utf-8")
-        # Very basic parsing: find ## timestamps and extract requests/responses
-        # and re-populate the context window.
-        lines = content.splitlines()
-        current_role = None
-        current_text = []
+        self.context.clear()
+        loaded = 0
 
-        # Clear current context for resume
-        self.context.history = []
-
-        for line in lines:
-            if line.startswith("## "):
-                continue
+        for line in content.splitlines():
             if line.startswith("- request: "):
                 self.context.add("user", line[len("- request: "):])
+                loaded += 1
             elif line.startswith("- response: "):
                 resp_json = line[len("- response: "):]
                 try:
@@ -470,7 +570,12 @@ class HarnessAgent:
                 except json.JSONDecodeError:
                     self.context.add("assistant", resp_json)
 
-        return {"ok": True, "message": f"Resumed from {chat_name}", "history_count": len(self.context.history)}
+        return {
+            "ok": True,
+            "message": f"Resumed from {chat_name}",
+            "history_count": self.context.count(),
+            "turns_loaded": loaded,
+        }
 
     @staticmethod
     def _predict_action(request: str) -> str:
