@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 
 from harness.core.messages import OLLAMA_WARNING
@@ -64,8 +65,24 @@ def print_agent_response(
 
     message = result.get("message")
     if message:
-        print(message)
+        print(_clean_markdown(message))
         return
+
+def _clean_markdown(text: str) -> str:
+    """Strip or simplify markdown that requires rich rendering (titles, hyperlinks)."""
+    if not text:
+        return ""
+    # Convert titles to plain bold-ish text or just strip #
+    lines = []
+    for line in text.splitlines():
+        if line.strip().startswith("#"):
+            lines.append(line.lstrip("#").strip().upper())
+        else:
+            lines.append(line)
+    text = "\n".join(lines)
+    # Convert [text](url) to "text"
+    text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+    return text
 
     if show_json_fallback:
         print(json.dumps(result, indent=2))

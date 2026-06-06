@@ -56,7 +56,7 @@ CLAUDE_PARADIGM = ToolkitParadigm(
         "- use_skill: apply matched skill plan (input = skill name)\n"
         "- run_tool: invoke a harness tool (input = JSON {\"tool\":\"...\",\"args\":{...}})\n"
         "  Tools include read_file, write_file (modify harness source), list_dir, grep, shell,\n"
-        "  create_skill, create_tool, read_skill, list_tools.\n"
+        "  create_skill, create_tool, read_skill, list_tools, pip_install.\n"
         "- note: store observation (input = text)\n"
         "- finish: complete with final message (input = message)\n"
         "Use run_tool to read/write code, create new tools, and evolve the harness.\n"

@@ -250,13 +250,17 @@ class HarnessAgent:
             toolkit=get_toolkit(self.cookbook.get_toolkit_name()),
         )
 
+        skill_was_used = False
+
         def local_act(action: str, ctx: Dict) -> Dict:
+            nonlocal skill_was_used
             if action == "run_tool":
                 result = self.tools.execute(ctx.get("input"))
                 if result.get("ok"):
                     self.memory.append_note("tool", json.dumps(result, ensure_ascii=True)[:500])
                 return result
             if action == "use_skill":
+                skill_was_used = True
                 skill_name = str(ctx.get("skill") or ctx.get("skill_name") or "")
                 skill_path = ctx.get("skill_path")
                 skill_body = ""
@@ -286,6 +290,12 @@ class HarnessAgent:
             initial_observations=initial_observations,
             workspace_root=self.workspace_root,
         )
+
+        if created and not skill_was_used:
+            # Delete newly created skill if it wasn't helpful (not used in the loop)
+            self.skills.delete_skill(created.name)
+            created = None
+            matched = None
 
         return self._finalize_request(
             request,
