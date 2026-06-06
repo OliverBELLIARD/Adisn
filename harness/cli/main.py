@@ -24,7 +24,7 @@ from harness.cli.display import (
     print_ollama_warning,
     print_user_message,
 )
-from harness.cli.live import ActivityRenderer
+from harness.cli.live import ActivityRenderer, enable_vt_processing
 from harness.cli.progress import progress_handler_for_live
 
 
@@ -35,6 +35,7 @@ def _ensure_utf8_stdout() -> None:
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         except (OSError, ValueError):
             pass
+    enable_vt_processing()
 
 
 def _supports_unicode_art() -> bool:

@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "time": "2026-06-06T15:54:42.171854Z",
+    "category": "interaction",
+    "summary": "Hi",
+    "tokens_estimate": 232
+  },
+  {
+    "time": "2026-06-06T15:58:26.289466Z",
+    "category": "interaction",
+    "summary": "Can you see the contents of this directory? \"C:\\Users\\olire\\Documents\\workspace_cli\\Adisn\\\"",
+    "tokens_estimate": 687
+  }
+]

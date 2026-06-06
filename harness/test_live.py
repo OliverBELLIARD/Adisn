@@ -21,6 +21,24 @@ class TestActivityRenderer(unittest.TestCase):
             live.finish()
         self.assertIn("Planning", buf.getvalue())
 
+    def test_single_line_spinner_redraws_in_place(self) -> None:
+        class TtyStringIO(io.StringIO):
+            def isatty(self) -> bool:
+                return True
+
+        buf = TtyStringIO()
+        with patch("harness.cli.live.sys.stdout", buf):
+            with patch("harness.cli.live.enable_vt_processing", return_value=True):
+                live = ActivityRenderer(enabled=True)
+                live.start("Replying…")
+                live._draw_once(final=False)
+                live._frame_idx = 1
+                live._draw_once(final=False)
+                spinning = buf.getvalue()
+                self.assertNotIn("\n", spinning)
+                self.assertGreaterEqual(spinning.count("\r"), 2)
+                live.finish()
+
     def test_progress_handler_updates_headline(self) -> None:
         live = ActivityRenderer(enabled=False)
         live.start("Working…")

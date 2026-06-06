@@ -10,9 +10,36 @@ from typing import Callable, List, Optional
 
 from harness.core.thinking import format_thinking_for_display
 
+_VT_ENABLED = False
+
 SPINNER_FRAMES_UNICODE = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 SPINNER_FRAMES_ASCII = ("|", "/", "-", "\\")
 SPINNER_INTERVAL_S = 0.08
+
+
+def enable_vt_processing() -> bool:
+    """Enable ANSI escape processing on Windows consoles (no-op elsewhere)."""
+    global _VT_ENABLED
+    if _VT_ENABLED:
+        return True
+    if sys.platform != "win32":
+        _VT_ENABLED = True
+        return True
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+        mode = ctypes.c_uint32()
+        if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        enable_virtual_terminal_processing = 0x0004
+        if not kernel32.SetConsoleMode(handle, mode.value | enable_virtual_terminal_processing):
+            return False
+        _VT_ENABLED = True
+        return True
+    except (AttributeError, OSError, ValueError):
+        return False
 
 
 def _unicode_safe() -> bool:
@@ -57,6 +84,7 @@ class ActivityRenderer:
         self._frame_idx = 0
         self._started = False
         self._finished_body: List[str] = []
+        self._single_line = True
 
     def start(self, headline: str = "Working…") -> None:
         if self._started:
@@ -67,6 +95,7 @@ class ActivityRenderer:
         if not self.enabled:
             print(f"{_status_glyph(done=False)} {headline}", flush=True)
             return
+        enable_vt_processing()
         sys.stdout.write("\033[?25l")  # hide cursor
         sys.stdout.flush()
         self._stop.clear()
@@ -128,16 +157,22 @@ class ActivityRenderer:
             self._thread = None
         if self.enabled:
             self._draw_once(final=True)
-            # Clear the live region so it doesn't stay on screen if we want to print final response
-            if self._lines_drawn:
-                sys.stdout.write(f"\033[{self._lines_drawn}A")
-                for _ in range(self._lines_drawn):
-                    sys.stdout.write("\033[2K\033[1B")
-                sys.stdout.write(f"\033[{self._lines_drawn}A")
+            self._clear_live_region()
             sys.stdout.write("\033[?25h")
             sys.stdout.flush()
             self._lines_drawn = 0
         self._started = False
+
+    def _clear_live_region(self) -> None:
+        if self._single_line:
+            sys.stdout.write("\r\033[2K")
+            return
+        if not self._lines_drawn:
+            return
+        sys.stdout.write(f"\033[{self._lines_drawn}A")
+        for _ in range(self._lines_drawn):
+            sys.stdout.write("\033[2K\033[1B")
+        sys.stdout.write(f"\033[{self._lines_drawn}A")
 
     def _spin_loop(self) -> None:
         while not self._stop.is_set():
@@ -160,18 +195,27 @@ class ActivityRenderer:
         lines = self._build_lines(state)
         if not self.enabled:
             return
-        if self._lines_drawn:
-            sys.stdout.write(f"\033[{self._lines_drawn}A")
-        for line in lines:
-            sys.stdout.write("\033[2K")
-            sys.stdout.write(line + "\n")
-        # If the new draw has fewer lines than before, clear the remaining old lines
-        if len(lines) < self._lines_drawn:
-            for _ in range(self._lines_drawn - len(lines)):
-                sys.stdout.write("\033[2K\n")
-            sys.stdout.write(f"\033[{self._lines_drawn - len(lines)}A")
-
-        self._lines_drawn = len(lines)
+        if len(lines) == 1:
+            self._single_line = True
+            sys.stdout.write(f"\r\033[2K{lines[0]}")
+            self._lines_drawn = 0 if final else 1
+        else:
+            if self._single_line and self._lines_drawn:
+                sys.stdout.write("\r\033[2K")
+                self._lines_drawn = 0
+            self._single_line = False
+            if self._lines_drawn:
+                sys.stdout.write(f"\033[{self._lines_drawn}A")
+            for index, line in enumerate(lines):
+                sys.stdout.write("\033[2K")
+                sys.stdout.write(line)
+                if index < len(lines) - 1:
+                    sys.stdout.write("\n")
+            if len(lines) < self._lines_drawn:
+                for _ in range(self._lines_drawn - len(lines)):
+                    sys.stdout.write("\033[2K\n")
+                sys.stdout.write(f"\033[{self._lines_drawn - len(lines)}A")
+            self._lines_drawn = len(lines)
         sys.stdout.flush()
 
     def _build_lines(self, state: LiveState) -> List[str]:

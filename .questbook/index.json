@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-06-05T22:11:10.936239Z",
+  "updated_at": "2026-06-06T15:58:26.260576Z",
   "models": [
     {
       "name": "qwen2-5-small:latest",
       "model_id": "e3e9a31bf2d2",
       "size": "4.7 GB",
-      "modified": "2 hours ago"
+      "modified": "20 hours ago"
     },
     {
       "name": "qwen2.5:7b",
@@ -23,7 +23,7 @@
       "name": "gemma4-clean:latest",
       "model_id": "0fad57e74d67",
       "size": "9.6 GB",
-      "modified": "8 days ago"
+      "modified": "9 days ago"
     },
     {
       "name": "qwen3.5:latest",
