@@ -140,6 +140,31 @@ class SkillStore:
         entries.sort(key=lambda e: e["created_at"], reverse=True)
         index_path.write_text(json.dumps(entries, indent=2), encoding="utf-8")
 
+    def delete_skill(self, name: str) -> bool:
+        """Delete a skill by name and update indexes."""
+        descriptor = self.match(name)
+        if not descriptor or descriptor.name != name:
+            # Fallback: search global index for exact name
+            candidates = self._load_global_index()
+            match = next((c for c in candidates if c["name"] == name), None)
+            if not match:
+                return False
+            descriptor = SkillDescriptor(**match)
+
+        path = self.workspace_root / descriptor.path
+        if path.exists():
+            path.unlink()
+
+        # Update type index
+        index_path = self.skills_root / descriptor.skill_type / "INDEX.json"
+        if index_path.exists():
+            entries = json.loads(index_path.read_text(encoding="utf-8"))
+            entries = [e for e in entries if e["name"] != name]
+            index_path.write_text(json.dumps(entries, indent=2), encoding="utf-8")
+
+        self._update_global_index()
+        return True
+
     def _update_global_index(self) -> None:
         all_entries: List[Dict] = []
         for type_dir in self.skills_root.iterdir():

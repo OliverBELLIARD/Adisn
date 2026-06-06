@@ -107,7 +107,6 @@ class AgentLoop:
         for step_idx in range(self.max_steps):
             if time.perf_counter() - started > self.step_timeout_s * self.max_steps:
                 break
-            step = LoopStep(phase="think")
             t0 = time.perf_counter()
 
             emit(
@@ -116,34 +115,22 @@ class AgentLoop:
                 max_steps=self.max_steps,
                 phase="think",
             )
-            step.thinking = self._think_step(
+
+            # Combined think-decide step for memory efficiency
+            thinking, decision = self._combined_step(
                 request,
                 skill_context,
                 observations,
                 step_idx,
                 on_progress=on_progress,
-            )
-            all_thinking.append(step.thinking)
-            if step.thinking:
-                emit("thinking", text=step.thinking)
-
-            step.phase = "decide"
-            emit(
-                "step",
-                step=step_idx + 1,
-                max_steps=self.max_steps,
-                phase="decide",
-            )
-            decision = self._decide_step(
-                request,
-                skill_context,
-                observations,
-                step.thinking,
-                on_progress=on_progress,
                 tools_prompt=tools_prompt,
                 workspace_root=workspace_root,
             )
-            step.decision = decision
+
+            step = LoopStep(phase="decide", thinking=thinking, decision=decision)
+            all_thinking.append(thinking)
+            if thinking:
+                emit("thinking", text=thinking)
 
             action = decision.get("action", "respond")
             action_input = decision.get("input", "")
@@ -231,7 +218,7 @@ class AgentLoop:
             ),
         }
 
-    def _think_step(
+    def _combined_step(
         self,
         request: str,
         skill_context: Dict[str, Any],
@@ -239,75 +226,62 @@ class AgentLoop:
         step_idx: int,
         *,
         on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
-    ) -> str:
-        local = local_thinking_plan(
+        tools_prompt: str = "",
+        workspace_root: Optional[Path] = None,
+    ) -> tuple[str, Dict[str, Any]]:
+        """Combined think + decide step to minimize LLM roundtrips and token usage."""
+        local_plan = local_thinking_plan(
             request if step_idx == 0 else f"Continue: {request}",
             predicted_action=skill_context.get("next_action", "analyze"),
             skill_name=skill_context.get("skill_name"),
             scope=skill_context.get("scope", "global"),
             ollama_available=self.server_running,
         )
-        if not self.thinking.enabled or not self.server_running:
-            if observations:
-                local += "\nObservations:\n" + "\n".join(f"- {o}" for o in observations[-3:])
-            return local
 
+        if not self.server_running:
+            if observations:
+                local_plan += "\nObservations:\n" + "\n".join(f"- {o}" for o in observations[-3:])
+            decision = _heuristic_decision(request, skill_context, observations, workspace_root=workspace_root)
+            return local_plan, decision
+
+        tool_block = f"\n{tools_prompt}\n" if tools_prompt else ""
         prompt = (
+            f"{self.toolkit.system_prompt}\n{tool_block}\n"
             f"Request: {request}\n"
             f"Step: {step_idx + 1}\n"
-            f"Skill: {skill_context.get('skill_name')}\n"
             f"Prior observations: {observations[-3:] if observations else 'none'}\n"
-            "Think only — plan the next single action."
+            f"{self.toolkit.decision_prompt}"
         )
+
         if on_progress:
-            on_progress({"kind": "model", "active": True, "phase": "think"})
-        chat = self.chat_fn(prompt, think=True, on_progress=on_progress)
+            on_progress({"kind": "model", "active": True, "phase": "think-decide"})
+
+        # Ask for thinking and decision in one go
+        chat = self.chat_fn(prompt, think=self.thinking.enabled, on_progress=on_progress)
+
         if on_progress:
-            on_progress({"kind": "model", "active": False, "phase": "think"})
+            on_progress({"kind": "model", "active": False, "phase": "think-decide"})
+
+        thinking = local_plan
+        decision = {}
+
         if chat.get("ok"):
-            native = (chat.get("thinking") or "").strip()
-            if native:
-                return native
-            raw = chat.get("raw") or chat.get("message", "")
-            t, _ = split_thinking_and_response(raw)
-            if t:
-                return t
-            return local
-        return local + f"\n(chat unavailable: {chat.get('error')})"
+            # Extract native thinking if provided (e.g. by Ollama think API)
+            thinking = (chat.get("thinking") or "").strip() or local_plan
 
-    def _decide_step(
-        self,
-        request: str,
-        skill_context: Dict[str, Any],
-        observations: List[str],
-        thinking: str,
-        *,
-        on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
-        tools_prompt: str = "",
-        workspace_root: Optional[Path] = None,
-    ) -> Dict[str, Any]:
-        if self.server_running and self.thinking.enabled:
-            tool_block = f"\n{tools_prompt}\n" if tools_prompt else ""
-            prompt = (
-                f"{self.toolkit.system_prompt}\n{tool_block}\nRequest: {request}\n"
-                f"Thinking:\n{thinking}\n"
-                f"Observations: {observations}\n"
-                f"{self.toolkit.decision_prompt}"
-            )
-            if on_progress:
-                on_progress({"kind": "model", "active": True, "phase": "decide"})
-            chat = self.chat_fn(prompt, think=False, on_progress=on_progress)
-            if on_progress:
-                on_progress({"kind": "model", "active": False, "phase": "decide"})
-            if chat.get("ok"):
-                raw_text = chat.get("message", "") + chat.get("raw", "")
-                parsed = self.toolkit.extract_decision(raw_text)
-                if parsed:
-                    return parsed
+            raw_text = chat.get("message", "") + chat.get("raw", "")
+            # If thinking wasn't in the native field, it might be in the content
+            if not chat.get("thinking"):
+                t, _ = split_thinking_and_response(raw_text)
+                if t:
+                    thinking = t
 
-        return _heuristic_decision(
-            request, skill_context, observations, workspace_root=workspace_root
-        )
+            decision = self.toolkit.extract_decision(raw_text) or {}
+
+        if not decision:
+            decision = _heuristic_decision(request, skill_context, observations, workspace_root=workspace_root)
+
+        return thinking, decision
 
     @staticmethod
     def _fallback_response(request: str, skill_context: Dict[str, Any]) -> str:

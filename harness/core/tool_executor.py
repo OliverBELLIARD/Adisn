@@ -85,6 +85,13 @@ class ToolExecutor:
             "keywords": ["skill", "read", "load", "procedure"],
             "builtin": True,
         },
+        {
+            "name": "pip_install",
+            "summary": "Install Python packages using pip",
+            "args": {"package": "str"},
+            "keywords": ["pip", "install", "package", "dependency", "library"],
+            "builtin": True,
+        },
     ]
 
     def __init__(
@@ -204,6 +211,7 @@ class ToolExecutor:
             "create_skill": self._create_skill,
             "create_tool": self._create_tool,
             "read_skill": self._read_skill,
+            "pip_install": self._pip_install,
             "list_tools": lambda _a: {"ok": True, "tools": [s.name for s in self.list_tools()]},
         }
         handler = handlers.get(tool)
@@ -215,7 +223,14 @@ class ToolExecutor:
         path = Path(raw).expanduser()
         if not path.is_absolute():
             path = self.workspace_root / path
-        return path.resolve()
+        resolved = path.resolve()
+        # Basic security: prevent path traversal if in workspace-only mode
+        if self.rewriter.safe_global:
+            try:
+                resolved.relative_to(self.workspace_root.resolve())
+            except ValueError:
+                raise ValueError(f"Access denied: {resolved} is outside the workspace.")
+        return resolved
 
     def _read_file(self, args: Dict[str, Any]) -> Dict[str, Any]:
         path = self._resolve_path(str(args.get("path", "")))
@@ -364,6 +379,12 @@ class ToolExecutor:
         self.registry_file.write_text(json.dumps(registry, indent=2), encoding="utf-8")
         self._ensure_tools_index()
         return {"ok": True, "name": name, "module": str(module_path.relative_to(self.workspace_root))}
+
+    def _pip_install(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        package = str(args.get("package", "")).strip()
+        if not package:
+            return {"ok": False, "error": "missing package name"}
+        return self._shell({"command": f"pip install {package}"})
 
     def _read_skill(self, args: Dict[str, Any]) -> Dict[str, Any]:
         name = str(args.get("name", "")).strip()
