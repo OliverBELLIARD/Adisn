@@ -57,10 +57,15 @@ class ContextWindowManager:
         initial_count = len(self._chunks)
         to_summarize = initial_count // 2
 
-        summarized_content = "[manual-summarization]\n"
+        summarized_content = (
+            "[manual-summarization]\n"
+            "This block contains a compressed summary of the older conversation history "
+            "to save context window space. Older turns are summarized below:\n\n"
+        )
         for _ in range(to_summarize):
             chunk = self._chunks.pop(0)
-            summarized_content += f"- {chunk.role}: {self._clip(chunk.content, 150)}\n"
+            role_label = chunk.role.upper()
+            summarized_content += f"### {role_label} Turn\n{self._clip(chunk.content, 300)}\n\n"
 
         new_chunk = ContextChunk(
             role="system",

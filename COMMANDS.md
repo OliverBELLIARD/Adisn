@@ -18,7 +18,7 @@ Slash commands are used directly by the user in the interactive CLI.
 - `/history load <id>`: Re-run a previous prompt by ID.
 - `/resume`: List available chat files in `.adisn/chats/`.
 - `/resume <chat_name>`: Reload a conversation history into the current context.
-- `/toolkit`: Show or set the tool-calling paradigm (e.g., `claude`, `deepseek`).
+- `/toolkit`: Show or set the tool-calling paradigm (e.g., `claude`, `qwen`, `deepseek`). Set to `qwen` for models like Qwen2.5-small.
 - `/scope <global|workspace>`: Toggle between global (unsafe) and workspace-only rewrite scope.
 
 ### Self-Modification Commands
