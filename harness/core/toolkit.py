@@ -60,6 +60,7 @@ CLAUDE_PARADIGM = ToolkitParadigm(
         "- note: store observation (input = text)\n"
         "- finish: complete with final message (input = message)\n"
         "Use run_tool to read/write code, create new tools, and evolve the harness.\n"
+        "Proactively use `create_skill` to automate repetitive tasks or complex multi-step workflows.\n"
         "NEVER claim you cannot access files or run commands — you run locally with full tool access.\n"
         "Read skills/INDEX.json and tools/INDEX.json; pick the best-matching skill or tool for the request."
     ),

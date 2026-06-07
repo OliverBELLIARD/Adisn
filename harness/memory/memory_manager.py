@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 class MemoryManager:
@@ -116,3 +116,20 @@ class MemoryManager:
             if entry.get("id") == entry_id:
                 return entry
         return None
+
+    def read_memory(self, file_name: str = "now.md", limit_lines: int = 200) -> Dict[str, Any]:
+        """Read content from a memory file."""
+        target = self.memory_dir / file_name
+        if not target.exists():
+            return {"ok": False, "error": f"Memory file {file_name} not found"}
+
+        content = target.read_text(encoding="utf-8", errors="replace")
+        lines = content.splitlines()
+        body = "\n".join(lines[-limit_lines:])
+
+        return {
+            "ok": True,
+            "file": file_name,
+            "total_lines": len(lines),
+            "content": body
+        }

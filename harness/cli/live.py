@@ -258,8 +258,13 @@ class ActivityRenderer:
                 parts.append(state.step_label.strip())
             if state.model_label:
                 parts.append(state.model_label.replace("Model · ", "Model: "))
-            if state.activity_detail:
-                parts.append(state.activity_detail)
+
+            # Add a bit of animation to the detail if it's there
+            detail = state.activity_detail
+            if detail:
+                dots = "." * (self._frame_idx % 4)
+                parts.append(f"{detail}{dots}")
+
             line = f"{glyph} {state.headline}"
             if parts:
                 line += f" {dim}· " + " · ".join(parts) + reset

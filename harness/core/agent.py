@@ -66,7 +66,7 @@ class HarnessAgent:
         self.cookbook = Cookbook(self.workspace_root, self.questbook)
         self.thinking = ThinkingMode(enabled=True)
         self.thinking_expanded = False
-        self.tools = ToolExecutor(self.workspace_root, self.rewriter, self.skills)
+        self.tools = ToolExecutor(self.workspace_root, self.rewriter, self.skills, self.memory)
 
     def is_ollama_server_running(self) -> bool:
         return bool(self.questbook.server_status()["server_running"])
@@ -248,6 +248,7 @@ class HarnessAgent:
             chat_fn=chat_fn,
             server_running=server_running,
             toolkit=get_toolkit(self.cookbook.get_toolkit_name()),
+            context_manager=self.context,
         )
 
         skill_was_used = False

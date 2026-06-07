@@ -40,7 +40,14 @@ class ToolExecutor:
             "name": "write_file",
             "summary": "Create or overwrite a file, including harness source code",
             "args": {"path": "str", "content": "str", "reason": "str?"},
-            "keywords": ["write", "edit", "modify", "rewrite", "create", "patch", "code"],
+            "keywords": ["write", "edit", "modify", "rewrite", "create", "code"],
+            "builtin": True,
+        },
+        {
+            "name": "patch_file",
+            "summary": "Apply a search-and-replace patch to a file",
+            "args": {"path": "str", "search": "str", "replace": "str", "reason": "str?"},
+            "keywords": ["patch", "edit", "replace", "modify", "sed"],
             "builtin": True,
         },
         {
@@ -86,6 +93,27 @@ class ToolExecutor:
             "builtin": True,
         },
         {
+            "name": "read_memory",
+            "summary": "Read from markdown-based memory files in .adisn/chats/",
+            "args": {"file_name": "str?", "limit_lines": "int?"},
+            "keywords": ["memory", "chat", "history", "recall", "remember"],
+            "builtin": True,
+        },
+        {
+            "name": "read_file_chunked",
+            "summary": "Read a file in chunks to avoid context overflow",
+            "args": {"path": "str", "chunk_index": "int?", "chunk_size": "int?"},
+            "keywords": ["read", "large", "chunk", "segment", "file"],
+            "builtin": True,
+        },
+        {
+            "name": "summarize_history",
+            "summary": "Manually trigger conversation history summarization",
+            "args": {},
+            "keywords": ["summarize", "compress", "history", "context", "tokens"],
+            "builtin": True,
+        },
+        {
             "name": "pip_install",
             "summary": "Install Python packages using pip",
             "args": {"package": "str"},
@@ -99,10 +127,12 @@ class ToolExecutor:
         workspace_root: Path,
         rewriter: SelfRewriter,
         skills: SkillStore,
+        memory: Optional[MemoryManager] = None,
     ):
         self.workspace_root = workspace_root
         self.rewriter = rewriter
         self.skills = skills
+        self.memory = memory
         self.custom_tools_dir = workspace_root / "tools" / "custom"
         self.custom_tools_dir.mkdir(parents=True, exist_ok=True)
         self.tools_index_file = workspace_root / "tools" / "INDEX.json"
@@ -205,12 +235,16 @@ class ToolExecutor:
         handlers: Dict[str, Callable[[Dict[str, Any]], Dict[str, Any]]] = {
             "read_file": self._read_file,
             "write_file": self._write_file,
+            "patch_file": self._patch_file,
             "list_dir": self._list_dir,
             "grep": self._grep,
             "shell": self._shell,
             "create_skill": self._create_skill,
             "create_tool": self._create_tool,
             "read_skill": self._read_skill,
+            "read_memory": self._read_memory,
+            "read_file_chunked": self._read_file_chunked,
+            "summarize_history": self._summarize_history,
             "pip_install": self._pip_install,
             "list_tools": lambda _a: {"ok": True, "tools": [s.name for s in self.list_tools()]},
         }
@@ -274,6 +308,29 @@ class ToolExecutor:
             result = {"ok": True, "target": str(target), "created": True}
         result["created"] = created
         return result
+
+    def _patch_file(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        path_str = str(args.get("path", ""))
+        search = str(args.get("search", ""))
+        replace = str(args.get("replace", ""))
+        reason = str(args.get("reason", "agent tool patch"))
+
+        if not path_str or not search:
+            return {"ok": False, "error": "path and search string required"}
+
+        target = self._resolve_path(path_str)
+        if not target.exists():
+            return {"ok": False, "error": f"File not found: {path_str}"}
+
+        content = target.read_text(encoding="utf-8", errors="replace")
+        if search not in content:
+            return {"ok": False, "error": f"Search string not found in {path_str}"}
+
+        new_content = content.replace(search, replace)
+        if new_content == content:
+            return {"ok": True, "message": "No changes made (replace matches search)", "path": path_str}
+
+        return self._write_file({"path": path_str, "content": new_content, "reason": reason})
 
     def _list_dir(self, args: Dict[str, Any]) -> Dict[str, Any]:
         path = self._resolve_path(str(args.get("path", ".")))
@@ -348,17 +405,38 @@ class ToolExecutor:
         content = args.get("content")
         if not task:
             return {"ok": False, "error": "missing task"}
+
+        if not content:
+            # Generate a structured template if no content provided
+            skill_type = self.skills._infer_type(task)
+            name = self.skills._skill_name(task)
+            content = (
+                f"# Skill: {name}\n\n"
+                f"**Task**: {task}\n"
+                f"**Type**: {skill_type}\n\n"
+                "## Workflow\n"
+                "1. Analyze the requirements.\n"
+                "2. Use appropriate tools (read_file, grep, etc.) to gather context.\n"
+                "3. Perform the necessary modifications using write_file or patch_file.\n"
+                "4. Verify the changes using shell commands or tests.\n\n"
+                "## Notes\n"
+                "- Proactively create more tools if needed.\n"
+                "- Always verify your work."
+            )
+
         try:
             descriptor = self.skills.generate_from_task(task)
         except ValueError:
             skill_type = self.skills._infer_type(task)
             name = self.skills._skill_name(task)
             path = self.skills._ensure_type_folder(skill_type) / f"{name}.md"
-            path.write_text(str(content or f"# {name}\n\n{task}\n"), encoding="utf-8")
+            path.write_text(str(content), encoding="utf-8")
             descriptor = None
+
         if content and descriptor:
             path = self.workspace_root / descriptor.path
             path.write_text(str(content), encoding="utf-8")
+
         return {
             "ok": True,
             "skill": descriptor.name if descriptor else name,
@@ -394,6 +472,49 @@ class ToolExecutor:
             if skill_path.stem == name or name in skill_path.name:
                 return {"ok": True, "name": skill_path.stem, "content": skill_path.read_text(encoding="utf-8")[:12000]}
         return {"ok": False, "error": f"skill not found: {name}"}
+
+    def _read_memory(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.memory:
+            from harness.memory.memory_manager import MemoryManager
+            self.memory = MemoryManager(self.workspace_root)
+
+        file_name = str(args.get("file_name", "now.md"))
+        limit_lines = int(args.get("limit_lines", 200))
+        return self.memory.read_memory(file_name, limit_lines)
+
+    def _read_file_chunked(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        path = self._resolve_path(str(args.get("path", "")))
+        if not path.exists():
+            return {"ok": False, "error": f"File not found: {path}"}
+
+        chunk_size = int(args.get("chunk_size", 4000))
+        chunk_index = int(args.get("chunk_index", 0))
+
+        content = path.read_text(encoding="utf-8", errors="replace")
+        total_len = len(content)
+        start = chunk_index * chunk_size
+        end = start + chunk_size
+
+        chunk = content[start:end]
+        has_more = end < total_len
+
+        return {
+            "ok": True,
+            "path": str(path),
+            "chunk_index": chunk_index,
+            "chunk_size": chunk_size,
+            "total_size": total_len,
+            "has_more": has_more,
+            "content": chunk
+        }
+
+    def _summarize_history(self, _args: Dict[str, Any]) -> Dict[str, Any]:
+        # This requires access to ContextWindowManager, which is in HarnessAgent
+        # Since we don't have it here, we'll return a signal that AgentLoop or HarnessAgent can catch.
+        # But wait, we can't easily signal back from execute.
+        # Let's see if we can get ContextWindowManager somehow.
+        # Actually, maybe ToolExecutor should have a reference to the agent or context manager.
+        return {"ok": False, "error": "summarize_history tool requires coordination with AgentLoop"}
 
     def _load_custom_registry(self) -> List[Dict[str, Any]]:
         try:
