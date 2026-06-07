@@ -1,0 +1,24 @@
+{
+  "serves": [
+    {
+      "id": "ollama-5d85ce05",
+      "backend": "ollama",
+      "model": "llama3.2:3b",
+      "port": 11434,
+      "pid": null,
+      "status": "active",
+      "started_at": "2026-06-07T17:32:50.722411Z",
+      "endpoint": "http://127.0.0.1:11434"
+    },
+    {
+      "id": "ollama-3bbb22f0",
+      "backend": "ollama",
+      "model": "llama3.2:3b",
+      "port": 11434,
+      "pid": null,
+      "status": "active",
+      "started_at": "2026-06-07T18:44:42.346217Z",
+      "endpoint": "http://127.0.0.1:11434"
+    }
+  ]
+}

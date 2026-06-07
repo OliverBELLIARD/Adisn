@@ -49,6 +49,38 @@ class ContextWindowManager:
     def count(self) -> int:
         return len(self._chunks)
 
+    def manual_summarize(self) -> Dict[str, Any]:
+        """Manually trigger summarization of the oldest half of the history."""
+        if len(self._chunks) < 4:
+            return {"ok": False, "error": "History too short to summarize"}
+
+        initial_count = len(self._chunks)
+        to_summarize = initial_count // 2
+
+        summarized_content = (
+            "[manual-summarization]\n"
+            "This block contains a compressed summary of the older conversation history "
+            "to save context window space. Older turns are summarized below:\n\n"
+        )
+        for _ in range(to_summarize):
+            chunk = self._chunks.pop(0)
+            role_label = chunk.role.upper()
+            summarized_content += f"### {role_label} Turn\n{self._clip(chunk.content, 300)}\n\n"
+
+        new_chunk = ContextChunk(
+            role="system",
+            content=summarized_content,
+            tokens=self.estimate_tokens(summarized_content)
+        )
+        self._chunks.insert(0, new_chunk)
+
+        return {
+            "ok": True,
+            "removed_count": to_summarize,
+            "new_count": len(self._chunks),
+            "tokens": new_chunk.tokens
+        }
+
     def format_for_prompt(self, max_chars: int = 6000) -> str:
         if not self._chunks:
             return ""

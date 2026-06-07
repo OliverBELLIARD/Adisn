@@ -1,14 +1,17 @@
 # Adisn
 
-Adisn is a self-evolving local agent harness designed for a 50k-token model runtime.
+Adisn is a self-evolving local agent harness designed for a 50k-token model runtime, optimized for efficiency and autonomy.
 
 ## What You Get
 
-- dynamic skill generation and indexed skill storage
-- context-window compression for long-running sessions
-- unsafe-by-default self-rewrite (global scope) with snapshots and rollback
-- built-in Questbook for Ollama model management
-- tool-call mode so other models can invoke Adisn as a tool
+- **Dynamic Skill Generation**: Indexed skill storage that grows with use.
+- **Advanced Context Management**: 50k-token rolling window with deterministic compression and manual summarization.
+- **Safety-First Rewriting**: Unsafe-by-default self-rewrite (global scope) with automatic snapshots and easy rollback.
+- **Efficient Editing**: `patch_file` for targeted search-and-replace, saving tokens over full rewrites.
+- **Rich UI**: Live CLI activity rendering with progress indicators for background tasks.
+- **Memory Retrieval**: Markdown-based persistent memory that the agent can actively query.
+- **Questbook**: Built-in Ollama model and lifecycle management.
+- **Tool-Call Mode**: Machine-oriented interface for model-to-model integration.
 
 ## Get Started (Step by Step)
 

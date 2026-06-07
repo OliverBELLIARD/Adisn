@@ -62,6 +62,7 @@ class AgentLoop:
         max_steps: int = 6,
         step_timeout_s: float = 30.0,
         toolkit: Optional[ToolkitParadigm] = None,
+        context_manager: Optional[ContextWindowManager] = None,
     ):
         self.thinking = thinking
         self.chat_fn = chat_fn
@@ -69,6 +70,7 @@ class AgentLoop:
         self.max_steps = max_steps
         self.step_timeout_s = step_timeout_s
         self.toolkit = toolkit or get_toolkit("claude")
+        self.context_manager = context_manager
 
     def run(
         self,
@@ -177,10 +179,24 @@ class AgentLoop:
                     steps.append(step)
                     continue
             elif action == "run_tool":
-                result = local_act_fn("run_tool", {"input": action_input, **skill_context})
-                obs = _serialize_tool_observation(result if isinstance(result, dict) else {"result": result})
+                try:
+                    tool_data = json.loads(action_input)
+                    tool_name = tool_data.get("tool", "tool")
+                except:
+                    tool_name = "tool"
+                emit("headline", text=f"Running {tool_name}…")
+                emit("thinking", text=f"Executing tool: {tool_name}")
+
+                if tool_name == "summarize_history" and hasattr(self, "context_manager"):
+                    # Use the actual context manager if available
+                    res = self.context_manager.manual_summarize()
+                    obs = _serialize_tool_observation(res)
+                else:
+                    result = local_act_fn("run_tool", {"input": action_input, **skill_context})
+                    obs = _serialize_tool_observation(result if isinstance(result, dict) else {"result": result})
                 observations.append(obs)
                 step.observation = obs[:400]
+                emit("headline", text="Working…")
             elif action == "use_skill":
                 result = local_act_fn("use_skill", {"skill": action_input, **skill_context})
                 obs = _serialize_tool_observation(result if isinstance(result, dict) else {"result": result})
