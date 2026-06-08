@@ -61,15 +61,16 @@ class SkillStore:
         keywords = self._keywords(task)
 
         body = (
-            f"# {name}\n\n"
-            f"Type: `{skill_type}`\n\n"
+            f"# Skill: {name}\n\n"
+            f"**Type**: `{skill_type}`\n\n"
             "## Intent\n"
-            f"{task}\n\n"
+            "Provide a general solution for tasks involving: " + ", ".join(keywords[:5]) + ".\n\n"
             "## Execution Outline\n"
-            "- Parse objective and constraints.\n"
-            "- Identify smallest valid action.\n"
-            "- Execute one step and verify.\n"
-            "- Persist result summary to memory.\n"
+            "1. **Analyze**: Understand the high-level goal and identify key components.\n"
+            "2. **Explore**: Use `list_dir`, `grep`, and `read_file` to map out the relevant parts of the codebase.\n"
+            "3. **Execute**: Apply changes incrementally using `write_file` or `patch_file`.\n"
+            "4. **Verify**: Run tests or shell commands to ensure the solution works as expected.\n"
+            "5. **Reflect**: Audit the result against the original intent and record any lessons learned.\n"
         )
         path.write_text(body, encoding="utf-8")
 
@@ -185,10 +186,17 @@ class SkillStore:
             return []
         return json.loads(path.read_text(encoding="utf-8"))
 
-    @staticmethod
-    def _skill_name(task: str) -> str:
-        stem = re.sub(r"[^a-z0-9]+", "-", task.lower()).strip("-")
-        return (stem or "generated-skill")[:60]
+    def _skill_name(self, task: str) -> str:
+        skill_type = self._infer_type(task)
+        keywords = self._keywords(task)
+        # Filter keywords to avoid specific paths or filenames
+        generic_keywords = [k for k in keywords if not any(x in k for x in ("/", "\\", ".", "_"))]
+        if not generic_keywords:
+            generic_keywords = keywords[:2]
+
+        stem = "-".join([skill_type] + generic_keywords[:3])
+        stem = re.sub(r"[^a-z0-9]+", "-", stem.lower()).strip("-")
+        return (stem or f"{skill_type}-skill")[:60]
 
     @staticmethod
     def _keywords(task: str) -> List[str]:

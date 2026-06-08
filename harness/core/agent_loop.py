@@ -8,7 +8,11 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from harness.core.context_window import ContextWindowManager
+    from harness.memory.memory_manager import MemoryManager
 
 from harness.core.direct_reply import request_needs_skill_workflow, try_direct_reply
 from harness.core.tool_intent import is_refusal_message, tool_call_json
@@ -63,6 +67,7 @@ class AgentLoop:
         step_timeout_s: float = 30.0,
         toolkit: Optional[ToolkitParadigm] = None,
         context_manager: Optional[ContextWindowManager] = None,
+        memory: Optional[MemoryManager] = None,
     ):
         self.thinking = thinking
         self.chat_fn = chat_fn
@@ -71,6 +76,7 @@ class AgentLoop:
         self.step_timeout_s = step_timeout_s
         self.toolkit = toolkit or get_toolkit("claude")
         self.context_manager = context_manager
+        self.memory = memory
 
     def run(
         self,
@@ -94,6 +100,16 @@ class AgentLoop:
                 on_progress({"kind": kind, **fields})
 
         emit("loop_start", max_steps=self.max_steps, request=request[:120])
+
+        # Consult past mistakes
+        mistakes = ""
+        if hasattr(self, "memory") and self.memory:
+            res = self.memory.read_memory("past_mistakes.md", limit_lines=50)
+            if res.get("ok"):
+                mistakes = res.get("content", "")
+
+        if mistakes:
+            observations.append(f"[Past Mistakes Log]:\n{mistakes}")
 
         direct = try_direct_reply(request)
         if direct:
@@ -161,9 +177,29 @@ class AgentLoop:
             )
             if action == "finish":
                 final_message = action_input or decision.get("reason", "")
+                if self.server_running and (_tools_were_used(observations) or step_idx > 0):
+                    emit("headline", text="Analyzing result…")
+                    critique = self._perform_critique(request, final_message, observations)
+                    if not critique.get("satisfied", True):
+                        feedback = critique.get("feedback", "Unsatisfied.")
+                        observations.append(f"[Critique]: {feedback}")
+                        if self.memory:
+                            self.memory.record_mistake(request, f"Step {step_idx+1} approach", feedback)
+                        emit("headline", text="Retrying…")
+                        continue
                 step.observation = "finished"
             elif action == "respond":
                 final_message = action_input or self._fallback_response(request, skill_context)
+                if self.server_running and not skill_context.get("skill_name"):
+                    emit("headline", text="Analyzing result…")
+                    critique = self._perform_critique(request, final_message, observations)
+                    if not critique.get("satisfied", True):
+                        feedback = critique.get("feedback", "Unsatisfied.")
+                        observations.append(f"[Critique]: {feedback}")
+                        if self.memory:
+                            self.memory.record_mistake(request, f"Step {step_idx+1} response", feedback)
+                        emit("headline", text="Retrying…")
+                        continue
                 step.observation = f"responded: {final_message[:50]}"
                 if is_refusal_message(final_message) and not _tools_were_used(observations):
                     suggested = suggest_tool_call(workspace_root, request) if workspace_root else None
@@ -218,6 +254,12 @@ class AgentLoop:
                 break
             if action == "respond" and not skill_context.get("skill_name"):
                 break
+
+        # Persistence and Memory Management
+        if hasattr(self, "context_manager") and self.context_manager:
+            if self.context_manager._total_tokens() > self.context_manager.compact_threshold_tokens:
+                emit("headline", text="Compacting memory…")
+                self.context_manager.manual_summarize()
 
         if not final_message:
             final_message = self._fallback_response(request, skill_context)
@@ -317,6 +359,27 @@ class AgentLoop:
             "observation": step.observation[:400] if step.observation else "",
             "duration_ms": step.duration_ms,
         }
+
+    def _perform_critique(self, request: str, response: str, observations: List[str]) -> Dict[str, Any]:
+        prompt = (
+            "You are an extremely critical auditor. Review the following task and response.\n"
+            f"User Intent: {request}\n"
+            f"Agent Response: {response}\n"
+            f"Observations: {observations[-3:] if observations else 'None'}\n\n"
+            "Does the response satisfy the user intent? Be extremely critical. "
+            "If the previous method didn't work, ensure it's noted.\n"
+            "Return JSON: {\"satisfied\": true/false, \"feedback\": \"...\"}"
+        )
+        chat = self.chat_fn(prompt, think=False)
+        if chat.get("ok"):
+            text = chat.get("message", "")
+            match = re.search(r"\{.*\"satisfied\".*\}", text, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group(0))
+                except:
+                    pass
+        return {"satisfied": True}
 
 
 def _extract_decision(text: str) -> Optional[Dict[str, Any]]:

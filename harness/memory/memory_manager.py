@@ -17,11 +17,14 @@ class MemoryManager:
         self.memory_dir.mkdir(parents=True, exist_ok=True)
         self.now_file = self.memory_dir / "now.md"
         self.recent_file = self.memory_dir / "recent.md"
+        self.mistakes_file = self.memory_dir / "past_mistakes.md"
         self.index_file = self.memory_dir / "index.json"
         if not self.now_file.exists():
             self.now_file.write_text("# Session Buffer\n", encoding="utf-8")
         if not self.recent_file.exists():
             self.recent_file.write_text("# Recent Notes\n", encoding="utf-8")
+        if not self.mistakes_file.exists():
+            self.mistakes_file.write_text("# Past Mistakes\nRecord failed approaches here to avoid repeating them.\n", encoding="utf-8")
         if not self.index_file.exists():
             self.index_file.write_text("[]", encoding="utf-8")
 
@@ -116,6 +119,18 @@ class MemoryManager:
             if entry.get("id") == entry_id:
                 return entry
         return None
+
+    def record_mistake(self, task: str, approach: str, result: str) -> None:
+        stamp = datetime.utcnow().isoformat() + "Z"
+        block = (
+            f"\n## {stamp}\n"
+            f"- **Task**: {task}\n"
+            f"- **Failed Approach**: {approach}\n"
+            f"- **Result**: {result}\n"
+        )
+        with self.mistakes_file.open("a", encoding="utf-8") as fh:
+            fh.write(block)
+        self._append_index("mistake", task[:160], block)
 
     def read_memory(self, file_name: str = "now.md", limit_lines: int = 200) -> Dict[str, Any]:
         """Read content from a memory file."""
