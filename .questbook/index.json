@@ -1,1 +1,41 @@
-[]
+{
+  "updated_at": "2026-06-08T18:21:29.585725Z",
+  "models": [
+    {
+      "name": "qwen2-5-small:latest",
+      "model_id": "e3e9a31bf2d2",
+      "size": "4.7 GB",
+      "modified": "2 days ago"
+    },
+    {
+      "name": "qwen2.5:7b",
+      "model_id": "845dbda0ea48",
+      "size": "4.7 GB",
+      "modified": "4 days ago"
+    },
+    {
+      "name": "qwen3-5-small:latest",
+      "model_id": "766bb2d1a2d4",
+      "size": "6.6 GB",
+      "modified": "8 days ago"
+    },
+    {
+      "name": "gemma4-clean:latest",
+      "model_id": "0fad57e74d67",
+      "size": "9.6 GB",
+      "modified": "11 days ago"
+    },
+    {
+      "name": "qwen3.5:latest",
+      "model_id": "6488c96fa5fa",
+      "size": "6.6 GB",
+      "modified": "3 weeks ago"
+    },
+    {
+      "name": "gemma4:latest",
+      "model_id": "c6eb396dbd59",
+      "size": "9.6 GB",
+      "modified": "4 weeks ago"
+    }
+  ]
+}
