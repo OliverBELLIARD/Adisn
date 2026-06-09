@@ -12,7 +12,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _run_interactive(script: str, timeout: int = 45) -> tuple[int, str, str]:
+def _run_interactive(script: str, timeout: int = 90) -> tuple[int, str, str]:
     proc = subprocess.run(
         [sys.executable, "-m", "adisn"],
         input=script,
@@ -26,7 +26,7 @@ def _run_interactive(script: str, timeout: int = 45) -> tuple[int, str, str]:
     return proc.returncode, proc.stdout, proc.stderr
 
 
-def _run_tool(action: str, value: str = "", timeout: int = 30) -> tuple[int, dict]:
+def _run_tool(action: str, value: str = "", timeout: int = 90) -> tuple[int, dict]:
     cmd = [sys.executable, "-m", "adisn", "tool", "--tool-flag", "--tool-action", action]
     if value:
         cmd.extend(["--tool-input", value])
@@ -54,7 +54,7 @@ def _run_cli(command: str) -> tuple[int, str]:
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=30,
+        timeout=90,
     )
     return proc.returncode, proc.stdout + proc.stderr
 

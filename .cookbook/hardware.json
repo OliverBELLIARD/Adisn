@@ -1,10 +1,10 @@
 {
-  "scanned_at": "2026-06-07T18:44:38.481216Z",
-  "os": "Linux",
-  "cpu": "x86_64",
-  "ram_gb": 7.77,
+  "scanned_at": "2026-06-09T07:28:02.644707Z",
+  "os": "Windows",
+  "cpu": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD",
+  "ram_gb": 15.41,
   "gpus": [],
-  "vram_budget_gb": 4.66,
+  "vram_budget_gb": 9.24,
   "cuda_available": false,
   "metal_available": false
 }

@@ -19,6 +19,26 @@
       "status": "active",
       "started_at": "2026-06-07T18:44:42.346217Z",
       "endpoint": "http://127.0.0.1:11434"
+    },
+    {
+      "id": "ollama-da07644b",
+      "backend": "ollama",
+      "model": "llama3.2:3b",
+      "port": 11434,
+      "pid": null,
+      "status": "active",
+      "started_at": "2026-06-09T07:23:16.825345Z",
+      "endpoint": "http://127.0.0.1:11434"
+    },
+    {
+      "id": "ollama-ebd4a5b3",
+      "backend": "ollama",
+      "model": "llama3.2:3b",
+      "port": 11434,
+      "pid": null,
+      "status": "active",
+      "started_at": "2026-06-09T07:28:07.269852Z",
+      "endpoint": "http://127.0.0.1:11434"
     }
   ]
 }

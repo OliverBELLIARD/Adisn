@@ -10,5 +10,119 @@
     "category": "interaction",
     "summary": "Based on the content of the Adisn directory, can you code?",
     "tokens_estimate": 2026
+  },
+  {
+    "time": "2026-06-09T07:23:51.595596Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": true, \"message\": \"Ollama server started\", \"running\": true, \"started\": true, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://0.0.0.0:11434\", ",
+    "tokens_estimate": 55
+  },
+  {
+    "time": "2026-06-09T07:23:52.735342Z",
+    "category": "ollama-status",
+    "summary": "{\"ollama_installed\": true, \"server_running\": true, \"server_started\": false, \"models_count\": 6, \"questbook_index\": \".questbook\\\\index.json\"}",
+    "tokens_estimate": 47
+  },
+  {
+    "time": "2026-06-09T07:23:53.629856Z",
+    "category": "rewrite",
+    "summary": "test -> C:\\Users\\olire\\AppData\\Local\\Temp\\tmp_rvqyqax\\note.txt: {'ok': False, 'error': 'File not found: C:\\\\Users\\\\olire\\\\AppData\\\\Local\\\\Temp\\\\tmp_rvqyqax\\\\not",
+    "tokens_estimate": 52
+  },
+  {
+    "time": "2026-06-09T07:23:54.527665Z",
+    "category": "rollback",
+    "summary": "{'ok': False, 'error': 'No rewrite history'}",
+    "tokens_estimate": 22
+  },
+  {
+    "time": "2026-06-09T07:23:55.471563Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"workspace\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-09T07:23:55.490420Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"global\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-09T07:24:01.309202Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": true, \"message\": \"Ollama server is already running\", \"running\": true, \"started\": false, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://0.0.",
+    "tokens_estimate": 54
+  },
+  {
+    "time": "2026-06-09T07:24:34.083517Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"workspace\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-09T07:24:56.989676Z",
+    "category": "interaction",
+    "summary": "ping",
+    "tokens_estimate": 177
+  },
+  {
+    "time": "2026-06-09T07:25:13.804435Z",
+    "category": "interaction",
+    "summary": "say hello",
+    "tokens_estimate": 188
+  },
+  {
+    "time": "2026-06-09T07:25:22.477156Z",
+    "category": "interaction",
+    "summary": "hello tool mode",
+    "tokens_estimate": 1719
+  },
+  {
+    "time": "2026-06-09T07:26:45.396919Z",
+    "category": "interaction",
+    "summary": "hello tool mode",
+    "tokens_estimate": 1719
+  },
+  {
+    "time": "2026-06-09T07:28:39.506234Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": true, \"message\": \"Ollama server started\", \"running\": true, \"started\": true, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://0.0.0.0:11434\", ",
+    "tokens_estimate": 55
+  },
+  {
+    "time": "2026-06-09T07:28:40.512880Z",
+    "category": "ollama-status",
+    "summary": "{\"ollama_installed\": true, \"server_running\": true, \"server_started\": false, \"models_count\": 6, \"questbook_index\": \".questbook\\\\index.json\"}",
+    "tokens_estimate": 47
+  },
+  {
+    "time": "2026-06-09T07:28:41.290013Z",
+    "category": "rewrite",
+    "summary": "test -> C:\\Users\\olire\\AppData\\Local\\Temp\\tmps8x76q97\\note.txt: {'ok': False, 'error': 'File not found: C:\\\\Users\\\\olire\\\\AppData\\\\Local\\\\Temp\\\\tmps8x76q97\\\\not",
+    "tokens_estimate": 52
+  },
+  {
+    "time": "2026-06-09T07:28:42.048107Z",
+    "category": "rollback",
+    "summary": "{'ok': False, 'error': 'No rewrite history'}",
+    "tokens_estimate": 22
+  },
+  {
+    "time": "2026-06-09T07:28:42.902342Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"workspace\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-09T07:28:42.917750Z",
+    "category": "scope",
+    "summary": "{\"ok\": true, \"scope\": \"global\"}",
+    "tokens_estimate": 18
+  },
+  {
+    "time": "2026-06-09T07:28:49.103393Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": true, \"message\": \"Ollama server is already running\", \"running\": true, \"started\": false, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://0.0.",
+    "tokens_estimate": 54
   }
 ]
