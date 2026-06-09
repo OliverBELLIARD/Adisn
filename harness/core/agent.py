@@ -550,12 +550,6 @@ class HarnessAgent:
 
     def list_chats(self) -> Dict:
         chats = []
-        # In a real impl, we might want to scan the chats dir for .md files
-        # For now, let's look at the index which tracks entries.
-        # But the prompt said 'select which conversation to load'.
-        # Let's assume we can load from 'now.md' or 'recent.md' or archived ones.
-        # Since MemoryManager currently only has now.md and recent.md,
-        # let's provide those as options.
         for f in self.memory.memory_dir.glob("*.md"):
             chats.append({"name": f.name, "path": str(f)})
         return {"ok": True, "chats": chats}
@@ -588,6 +582,32 @@ class HarnessAgent:
             "history_count": self.context.count(),
             "turns_loaded": loaded,
         }
+
+    def select_model_by_index(self, choice: str) -> Dict:
+        models = self.questbook.read_cached_models()
+        if not models and self.is_ollama_server_running():
+            models = self.questbook.list_models(start_server=False)
+
+        if not models:
+            return {"ok": False, "error": "no models installed or Ollama is offline"}
+
+        target = None
+        if choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(models):
+                target = models[idx]["name"]
+            else:
+                return {"ok": False, "error": f"index {choice} out of range (1-{len(models)})"}
+        else:
+            for m in models:
+                if m["name"] == choice or m["name"].startswith(f"{choice}:"):
+                    target = m["name"]
+                    break
+
+        if not target:
+            return {"ok": False, "error": f"model '{choice}' not found"}
+
+        return self.cookbook.set_active_model(target)
 
     @staticmethod
     def _predict_action(request: str) -> str:

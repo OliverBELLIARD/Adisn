@@ -39,6 +39,16 @@
       "status": "active",
       "started_at": "2026-06-09T07:28:07.269852Z",
       "endpoint": "http://127.0.0.1:11434"
+    },
+    {
+      "id": "ollama-a5196eaf",
+      "backend": "ollama",
+      "model": "llama3.2:3b",
+      "port": 11434,
+      "pid": null,
+      "status": "active",
+      "started_at": "2026-06-05T15:03:01.983569Z",
+      "endpoint": "http://127.0.0.1:11434"
     }
   ]
 }

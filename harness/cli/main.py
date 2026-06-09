@@ -511,6 +511,13 @@ def run_interactive(args: argparse.Namespace):
         if line == "/rollback":
             print(json.dumps(agent.rollback_last_rewrite(), indent=2))
             continue
+        if line == "/models":
+            print(format_cookbook_result(agent.cookbook_command("installed")))
+            continue
+        if line.startswith("/model "):
+            _, _, choice = line.partition("/model ")
+            print(json.dumps(agent.select_model_by_index(choice.strip()), indent=2))
+            continue
         if line == "/ollama status":
             print(json.dumps(agent.ollama_status(), indent=2))
             continue
@@ -755,6 +762,20 @@ def _slash_command_specs() -> list[SlashCommandSpec]:
         ),
         SlashCommandSpec("/scope", "System", "Switch rewrite scope mode", "/scope <global|workspace>", "/scope workspace"),
         SlashCommandSpec("/quit", "System", "Exit interactive mode", "/quit", "/quit"),
+        SlashCommandSpec(
+            "/models",
+            "Models",
+            "List available Ollama models with indexes",
+            "/models",
+            "/models",
+        ),
+        SlashCommandSpec(
+            "/model",
+            "Models",
+            "Select an active model by index or name",
+            "/model <index|name>",
+            "/model 1",
+        ),
         SlashCommandSpec(
             "/rewrite",
             "Self-Modification",

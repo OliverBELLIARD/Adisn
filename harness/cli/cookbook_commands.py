@@ -40,4 +40,16 @@ def format_cookbook_result(result: Dict[str, Any]) -> str:
             lines.append(f"  {'✓' if ok else '✗'} {name}")
         return "\n".join(lines)
 
+    if "installed" in result:
+        installed = result["installed"]
+        if not installed:
+            return "No Ollama models installed."
+        lines = ["Available Ollama models:"]
+        for idx, m in enumerate(installed, start=1):
+            name = m.get("name", "unknown")
+            size = m.get("size", "?")
+            lines.append(f"  {idx}. {name} ({size})")
+        lines.append("\nUse `/model <index>` to select one.")
+        return "\n".join(lines)
+
     return json.dumps(result, indent=2)
