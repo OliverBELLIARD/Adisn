@@ -148,5 +148,47 @@
     "category": "interaction",
     "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
     "tokens_estimate": 2010
+  },
+  {
+    "time": "2026-06-09T10:18:19.879340Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\", \"entries\": [{\"name\": \".adisn\", \"type\": \"dir\"}, {\"name\": \".claude\", \"type\": \"dir\"}, {\"n",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-09T10:18:36.993416Z",
+    "category": "mistake",
+    "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
+    "tokens_estimate": 117
+  },
+  {
+    "time": "2026-06-09T10:18:50.677008Z",
+    "category": "mistake",
+    "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
+    "tokens_estimate": 117
+  },
+  {
+    "time": "2026-06-09T10:19:04.390363Z",
+    "category": "mistake",
+    "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
+    "tokens_estimate": 117
+  },
+  {
+    "time": "2026-06-09T10:19:17.917895Z",
+    "category": "mistake",
+    "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
+    "tokens_estimate": 123
+  },
+  {
+    "time": "2026-06-09T10:19:31.466488Z",
+    "category": "mistake",
+    "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
+    "tokens_estimate": 123
+  },
+  {
+    "time": "2026-06-09T10:19:31.708584Z",
+    "category": "interaction",
+    "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
+    "tokens_estimate": 1053
   }
 ]
