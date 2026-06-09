@@ -39,7 +39,7 @@ class TestAgentLoop(unittest.TestCase):
             {"skill_name": None},
             [obs],
         )
-        self.assertIn("Contents of README.md:", msg)
+        self.assertIn("README.md", msg)
         self.assertNotIn('"ok": true', msg)
         self.assertLess(len(msg), 5000)
 

@@ -326,11 +326,21 @@ class AgentLoop:
             return local_plan, decision
 
         tool_block = f"\n{tools_prompt}\n" if tools_prompt else ""
+        obs_text = _format_observations_for_prompt(observations[-3:])
+        continuation_hint = ""
+        if step_idx > 0 and observations:
+            files_read = sum(1 for o in observations if '"content"' in o)
+            if files_read == 0:
+                continuation_hint = (
+                    "\nYou have listed a directory but not read any files yet. "
+                    "Use run_tool with read_file to examine key source files before answering.\n"
+                )
         prompt = (
             f"{self.toolkit.system_prompt}\n{tool_block}\n"
             f"Request: {request}\n"
             f"Step: {step_idx + 1}\n"
-            f"Prior observations: {observations[-3:] if observations else 'none'}\n"
+            f"Prior tool results:\n{obs_text}\n"
+            f"{continuation_hint}"
             f"{self.toolkit.decision_prompt}"
         )
 
@@ -409,6 +419,42 @@ class AgentLoop:
         return {"satisfied": True}
 
 
+def _needs_file_analysis(request: str) -> bool:
+    """True when the request requires reading/analyzing code, not just listing."""
+    low = request.lower()
+    return any(w in low for w in (
+        "change", "improve", "what would", "analyze", "harness", "code",
+        "modify", "implement", "fix", "explain", "how does", "tell me",
+        "read", "review", "assess", "understand",
+    ))
+
+
+def _format_observations_for_prompt(observations: List[str]) -> str:
+    """Format raw JSON observations into human-readable text for LLM prompts."""
+    if not observations:
+        return "none"
+    parts = []
+    for obs in observations:
+        result = _parse_observation(obs)
+        if not result:
+            parts.append(obs[:300])
+            continue
+        if result.get("entries"):
+            names = [f"{e.get('name')} ({e.get('type')})" for e in result["entries"][:20]]
+            parts.append(f"[directory listing]: {', '.join(names)}")
+        elif result.get("content") is not None:
+            path = result.get("path", "file")
+            snippet = str(result["content"])[:600]
+            parts.append(f"[read {path}]:\n{snippet}")
+        elif result.get("stdout") is not None:
+            parts.append(f"[shell output]:\n{str(result.get('stdout', ''))[:400]}")
+        elif result.get("message"):
+            parts.append(f"[result]: {result['message'][:200]}")
+        else:
+            parts.append(obs[:300])
+    return "\n\n".join(parts)
+
+
 def _extract_decision(text: str) -> Optional[Dict[str, Any]]:
     for line in text.splitlines():
         line = line.strip()
@@ -461,6 +507,19 @@ def _heuristic_decision(
         return {"action": action, "input": direct, "reason": "direct reply"}
 
     if observations and _tools_were_used(observations):
+        # After a directory listing alone, read key files before finishing if analysis is needed
+        files_read = sum(1 for o in observations if '"content"' in o)
+        if files_read == 0 and _needs_file_analysis(request) and workspace_root:
+            last_obs = observations[-1] if observations else ""
+            last_result = _parse_observation(last_obs)
+            entries = last_result.get("entries", []) if last_result else []
+            next_file = _suggest_next_read(request, entries, workspace_root, observations)
+            if next_file:
+                return {
+                    "action": "run_tool",
+                    "input": tool_call_json({"tool": "read_file", "args": {"path": next_file}}),
+                    "reason": f"reading {next_file} to analyze codebase",
+                }
         return {
             "action": "finish",
             "input": _heuristic_finish_message(request, skill_context, observations),
@@ -503,6 +562,50 @@ def _heuristic_decision(
     }
 
 
+def _suggest_next_read(
+    request: str,
+    entries: List[Dict[str, Any]],
+    workspace_root: Path,
+    observations: List[str],
+) -> Optional[str]:
+    """Pick the next key file to read for codebase analysis, skipping already-read files."""
+    already_read = set()
+    for obs in observations:
+        result = _parse_observation(obs)
+        if result and result.get("path"):
+            already_read.add(result["path"])
+
+    # Priority list for harness analysis requests
+    priority = [
+        "harness/core/agent_loop.py",
+        "harness/core/agent.py",
+        "harness/core/toolkit.py",
+        "harness/core/direct_reply.py",
+        "harness/core/task_complexity.py",
+        "HARNESS_SUMMARY.md",
+        "README.md",
+    ]
+    low = request.lower()
+    if "tool" in low:
+        priority = ["harness/core/tool_executor.py"] + priority
+    if "skill" in low:
+        priority = ["harness/core/skill_store.py"] + priority
+    if "memory" in low:
+        priority = ["harness/memory/memory_manager.py"] + priority
+
+    for rel in priority:
+        if rel not in already_read and (workspace_root / rel).exists():
+            return rel
+
+    # Fall back to any .py file in directory listing
+    for e in entries:
+        name = e.get("name", "")
+        if name.endswith(".py") and name not in already_read:
+            return name
+
+    return None
+
+
 def _conversational_response(request: str, skill_context: Dict[str, Any]) -> str:
     return request.strip() or (
         f"Next: {skill_context.get('next_action', 'analyze')}"
@@ -516,23 +619,40 @@ def _heuristic_finish_message(
     if direct:
         return direct
 
-    for raw in reversed(observations):
+    files_read: List[tuple] = []
+    dir_listing: Optional[str] = None
+
+    for raw in observations:
         result = _parse_observation(raw)
         if not result:
             continue
-        if result.get("entries"):
+        if result.get("entries") and dir_listing is None:
             lines = [f"- {e.get('name')} ({e.get('type')})" for e in result["entries"][:40]]
-            return "Directory listing:\n" + "\n".join(lines)
-        if result.get("content"):
+            dir_listing = "Directory listing:\n" + "\n".join(lines)
+        if result.get("content") is not None:
             path = result.get("path", "file")
             body = str(result["content"]).strip()
-            if len(body) > 4000:
-                body = body[:3997] + "…"
-            return f"Contents of {path}:\n{body}"
-        if result.get("stdout") is not None:
-            return f"$ command output\n{str(result.get('stdout', ''))[:4000]}"
-        if result.get("message"):
-            return str(result["message"])
+            files_read.append((path, body))
+        elif result.get("stdout") is not None:
+            files_read.append(("shell", str(result.get("stdout", ""))[:4000]))
+        elif result.get("message") and not result.get("entries"):
+            files_read.append(("result", str(result["message"])))
+
+    if files_read:
+        parts = []
+        char_budget = 8000
+        for path, body in files_read:
+            allotment = min(char_budget, 3000)
+            if len(body) > allotment:
+                body = body[:allotment - 3] + "…"
+            parts.append(f"[{path}]\n{body}")
+            char_budget -= len(body)
+            if char_budget <= 0:
+                break
+        return "\n\n---\n\n".join(parts)
+
+    if dir_listing:
+        return dir_listing
 
     skill = skill_context.get("skill_name") or "generated"
     return (
