@@ -86,6 +86,34 @@ def _strip_ansi(text: str) -> str:
     return re.sub(r"\033[^m]*m", "", text)
 
 
+def _truncate_visible(text: str, max_width: int) -> str:
+    """Truncate text to a maximum visible width, preserving ANSI codes."""
+    if max_width <= 0:
+        return ""
+
+    visible_len = 0
+    result = []
+    ansi_pattern = re.compile(r"(\033\[[0-9;]*m)")
+    parts = ansi_pattern.split(text)
+
+    for part in parts:
+        if not part:
+            continue
+        if ansi_pattern.match(part):
+            result.append(part)
+        else:
+            remaining = max_width - visible_len
+            if len(part) <= remaining:
+                result.append(part)
+                visible_len += len(part)
+            else:
+                result.append(part[:remaining])
+                visible_len += remaining
+                break
+
+    return "".join(result)
+
+
 class ActivityRenderer:
     """Animated status region while the agent or model is working."""
 
@@ -222,10 +250,9 @@ class ActivityRenderer:
             width = _terminal_width()
             if not state.done:
                 line = lines[0] if lines else ""
-                visible = len(_strip_ansi(line))
-                pad = max(0, width - visible - 1)
+                truncated = _truncate_visible(line, width - 1)
                 self._single_line = True
-                sys.stdout.write(f"\r\033[2K{line}{' ' * pad}")
+                sys.stdout.write(f"\r\033[2K{truncated}")
                 self._lines_drawn = 0 if final else 1
             else:
                 if self._lines_drawn:
