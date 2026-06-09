@@ -103,13 +103,22 @@ class AgentLoop:
 
         # Consult past mistakes
         mistakes = ""
+        continuation = ""
         if hasattr(self, "memory") and self.memory:
             res = self.memory.read_memory("past_mistakes.md", limit_lines=50)
             if res.get("ok"):
                 mistakes = res.get("content", "")
 
+            plan_path = self.memory.memory_dir / "continuation_plan.md"
+            if plan_path.exists():
+                continuation = plan_path.read_text(encoding="utf-8")
+                plan_path.unlink() # Clear after loading
+
         if mistakes:
             observations.append(f"[Past Mistakes Log]:\n{mistakes}")
+
+        if continuation:
+            observations.append(f"[Continuation Plan Loaded]:\n{continuation}")
 
         direct = try_direct_reply(request)
         if direct:
@@ -260,6 +269,20 @@ class AgentLoop:
             if self.context_manager._total_tokens() > self.context_manager.compact_threshold_tokens:
                 emit("headline", text="Compacting memory…")
                 self.context_manager.manual_summarize()
+
+                # Create continuation plan if intent not satisfied and memory was compressed
+                if self.server_running and self.memory:
+                    plan_path = self.memory.memory_dir / "continuation_plan.md"
+                    plan_content = (
+                        f"# Continuation Plan\n\n"
+                        f"**User Intent**: {request}\n"
+                        f"**Status**: Memory threshold reached and compressed.\n"
+                        f"**Progress**: {len(steps)} steps executed.\n"
+                        f"**Last Observation**: {observations[-1] if observations else 'None'}\n\n"
+                        "## Next Steps\n"
+                        "Continue the analysis and execution from the last state."
+                    )
+                    plan_path.write_text(plan_content, encoding="utf-8")
 
         if not final_message:
             final_message = self._fallback_response(request, skill_context)
