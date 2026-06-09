@@ -389,8 +389,12 @@ class AgentLoop:
             f"User Intent: {request}\n"
             f"Agent Response: {response}\n"
             f"Observations: {observations[-3:] if observations else 'None'}\n\n"
-            "Does the response satisfy the user intent? Be extremely critical. "
-            "If the previous method didn't work, ensure it's noted.\n"
+            "Does the response satisfy the user intent? Be extremely critical.\n"
+            "Reject (satisfied=false) if:\n"
+            "1. The agent's response only describes what it *will* do instead of having done it.\n"
+            "2. The agent only completed a sub-task (like creating a skill) but didn't finish the main request.\n"
+            "3. The agent failed to verbally verify that the intent was satisfied.\n"
+            "4. The response is conversational but the task required tool use that wasn't completed.\n\n"
             "Return JSON: {\"satisfied\": true/false, \"feedback\": \"...\"}"
         )
         chat = self.chat_fn(prompt, think=False)
