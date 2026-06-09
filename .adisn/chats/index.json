@@ -124,5 +124,29 @@
     "category": "ollama-serve",
     "summary": "{\"ok\": true, \"message\": \"Ollama server is already running\", \"running\": true, \"started\": false, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://0.0.",
     "tokens_estimate": 54
+  },
+  {
+    "time": "2026-06-09T08:52:17.355333Z",
+    "category": "ollama-serve",
+    "summary": "{\"ok\": true, \"message\": \"Ollama server is already running\", \"running\": true, \"started\": false, \"host\": \"http://127.0.0.1:11434\", \"configured_host\": \"http://0.0.",
+    "tokens_estimate": 54
+  },
+  {
+    "time": "2026-06-09T08:53:49.925861Z",
+    "category": "tool",
+    "summary": "{\"ok\": true, \"path\": \"C:\\\\Users\\\\olire\\\\Documents\\\\workspace_cli\\\\Adisn\", \"entries\": [{\"name\": \".adisn\", \"type\": \"dir\"}, {\"name\": \".claude\", \"type\": \"dir\"}, {\"n",
+    "tokens_estimate": 135
+  },
+  {
+    "time": "2026-06-09T08:54:16.713200Z",
+    "category": "mistake",
+    "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
+    "tokens_estimate": 129
+  },
+  {
+    "time": "2026-06-09T08:54:16.859708Z",
+    "category": "interaction",
+    "summary": "Find the Adisn directory and tell me what you would change in that harness to make you more powerful, as it's your harness",
+    "tokens_estimate": 2010
   }
 ]
