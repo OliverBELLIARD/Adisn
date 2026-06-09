@@ -60,9 +60,10 @@ CLAUDE_PARADIGM = ToolkitParadigm(
         "- note: store observation (input = text)\n"
         "- finish: complete with final message (input = message)\n"
         "Use run_tool to read/write code, create new tools, and evolve the harness.\n"
-        "Proactively use `create_skill` to automate repetitive tasks or complex multi-step workflows.\n"
+        "Proactively use `create_skill` to automate repetitive tasks or complex multi-step workflows. Ensure skills are general and reusable.\n"
         "NEVER claim you cannot access files or run commands — you run locally with full tool access.\n"
-        "Read skills/INDEX.json and tools/INDEX.json; pick the best-matching skill or tool for the request."
+        "Read skills/INDEX.json and tools/INDEX.json; pick the best-matching skill or tool for the request.\n"
+        "Consult .adisn/chats/past_mistakes.md to avoid repeating previous failures."
     ),
     decision_prompt="Output the JSON decision line now."
 )
@@ -74,6 +75,8 @@ DEEPSEEK_PARADIGM = ToolkitParadigm(
         "After reasoning, provide your decision as a single JSON object in a markdown code block.\n"
         "Actions: respond, use_skill, run_tool, note, finish.\n"
         "run_tool input is JSON: {\"tool\":\"read_file|write_file|shell|...\",\"args\":{...}}\n"
+        "Proactively use `create_skill` for multi-step work; ensure they are general.\n"
+        "Consult .adisn/chats/past_mistakes.md to avoid repeating failures.\n"
         "Format: ```json\n{\"action\": \"...\", \"input\": \"...\", \"reason\": \"...\"}\n```"
     ),
     decision_prompt="Provide your JSON decision in a ```json code block.",
@@ -109,6 +112,8 @@ GEMMA_PARADIGM = ToolkitParadigm(
         "You are Adisn. You must decide the next action.\n"
         "Actions: respond, use_skill, run_tool, note, finish.\n"
         "run_tool input is JSON with tool name and args (read_file, write_file, shell, create_tool, etc.).\n"
+        "Proactively use `create_skill` for multi-step work; keep them general.\n"
+        "Consult .adisn/chats/past_mistakes.md to avoid failures.\n"
         "Use the following XML-like format for your decision:\n"
         "<decision>\n{\"action\": \"...\", \"input\": \"...\", \"reason\": \"...\"}\n</decision>"
     ),
