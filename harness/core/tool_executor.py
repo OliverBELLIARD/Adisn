@@ -128,11 +128,13 @@ class ToolExecutor:
         rewriter: SelfRewriter,
         skills: SkillStore,
         memory: Optional[MemoryManager] = None,
+        context_manager: Optional[ContextWindowManager] = None,
     ):
         self.workspace_root = workspace_root
         self.rewriter = rewriter
         self.skills = skills
         self.memory = memory
+        self.context_manager = context_manager
         self.custom_tools_dir = workspace_root / "tools" / "custom"
         self.custom_tools_dir.mkdir(parents=True, exist_ok=True)
         self.tools_index_file = workspace_root / "tools" / "INDEX.json"
@@ -509,11 +511,8 @@ class ToolExecutor:
         }
 
     def _summarize_history(self, _args: Dict[str, Any]) -> Dict[str, Any]:
-        # This requires access to ContextWindowManager, which is in HarnessAgent
-        # Since we don't have it here, we'll return a signal that AgentLoop or HarnessAgent can catch.
-        # But wait, we can't easily signal back from execute.
-        # Let's see if we can get ContextWindowManager somehow.
-        # Actually, maybe ToolExecutor should have a reference to the agent or context manager.
+        if hasattr(self, "context_manager") and self.context_manager:
+            return self.context_manager.manual_summarize()
         return {"ok": False, "error": "summarize_history tool requires coordination with AgentLoop"}
 
     def _load_custom_registry(self) -> List[Dict[str, Any]]:

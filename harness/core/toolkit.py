@@ -94,10 +94,11 @@ QWEN_PARADIGM = ToolkitParadigm(
         "  create_skill, create_tool, read_skill, read_memory, summarize_history, list_tools, pip_install.\n"
         "- note: record an observation (input = text)\n"
         "- finish: end the task with a final report (input = report text)\n"
-        "Proactively use `create_skill` to automate multi-step work.\n"
+        "Proactively use `create_skill` to automate multi-step work. Ensure skills are general and reusable, avoiding overfitting to specific filenames or paths unless necessary.\n"
         "Use `patch_file` for targeted code edits to save context space.\n"
         "NEVER claim you lack permissions or tool access. You run locally with full capabilities.\n"
-        "Read skills/INDEX.json and tools/INDEX.json to select the best capabilities."
+        "Read skills/INDEX.json and tools/INDEX.json to select the best capabilities.\n"
+        "Consult .adisn/chats/past_mistakes.md to avoid repeating previous failures."
     ),
     decision_prompt="Return a JSON object with 'action', 'input', and 'reason'.",
 )
