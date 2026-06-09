@@ -13,6 +13,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _run_interactive(script: str, timeout: int = 90) -> tuple[int, str, str]:
+    import os
+    env = os.environ.copy()
+    env["OLLAMA_HOST"] = "http://127.0.0.1:9999"
     proc = subprocess.run(
         [sys.executable, "-m", "adisn"],
         input=script,
@@ -22,6 +25,7 @@ def _run_interactive(script: str, timeout: int = 90) -> tuple[int, str, str]:
         encoding="utf-8",
         errors="replace",
         timeout=timeout,
+        env=env,
     )
     return proc.returncode, proc.stdout, proc.stderr
 
@@ -30,6 +34,9 @@ def _run_tool(action: str, value: str = "", timeout: int = 90) -> tuple[int, dic
     cmd = [sys.executable, "-m", "adisn", "tool", "--tool-flag", "--tool-action", action]
     if value:
         cmd.extend(["--tool-input", value])
+    import os
+    env = os.environ.copy()
+    env["OLLAMA_HOST"] = "http://127.0.0.1:9999"
     proc = subprocess.run(
         cmd,
         cwd=REPO_ROOT,
@@ -38,6 +45,7 @@ def _run_tool(action: str, value: str = "", timeout: int = 90) -> tuple[int, dic
         encoding="utf-8",
         errors="replace",
         timeout=timeout,
+        env=env,
     )
     try:
         data = json.loads(proc.stdout)
@@ -47,6 +55,9 @@ def _run_tool(action: str, value: str = "", timeout: int = 90) -> tuple[int, dic
 
 
 def _run_cli(command: str) -> tuple[int, str]:
+    import os
+    env = os.environ.copy()
+    env["OLLAMA_HOST"] = "http://127.0.0.1:9999"
     proc = subprocess.run(
         [sys.executable, "-m", "adisn", command],
         cwd=REPO_ROOT,
@@ -55,6 +66,7 @@ def _run_cli(command: str) -> tuple[int, str]:
         encoding="utf-8",
         errors="replace",
         timeout=90,
+        env=env,
     )
     return proc.returncode, proc.stdout + proc.stderr
 
